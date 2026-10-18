@@ -82,6 +82,7 @@ h1 {
   font-size: clamp(3rem, 8vw, 6.5rem);
   letter-spacing: -.065em;
 }
+.page-title { max-width: none; font-size: clamp(2.5rem, 7vw, 4.5rem); }
 h2 { margin: 0 0 .8rem; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: -.04em; }
 h3 { margin: 0 0 .5rem; font-size: 1.25rem; }
 p { margin: 0 0 1rem; }
@@ -145,6 +146,17 @@ main section { padding-block: clamp(2.8rem, 7vw, 5rem); }
 .event-list { display: grid; gap: .75rem; }
 .event-item { padding-block: .9rem; border-bottom: 1px solid var(--line); }
 .event-item:last-child { border-bottom: 0; }
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.event-table { width: 100%; border-collapse: collapse; text-align: left; }
+.event-table th, .event-table td { padding: .8rem 1rem; border-bottom: 1px solid var(--line); }
+.event-table th { background: var(--soft); white-space: nowrap; }
+.event-table tbody tr:last-child td { border-bottom: 0; }
 .button {
   display: inline-flex;
   align-items: center;

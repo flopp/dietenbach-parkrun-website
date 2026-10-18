@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ergebnisse und Rückblicke aller vergangenen Dietenbach parkrun-Veranstaltungen in Freiburg.">
+  <meta name="theme-color" content="#f7f7f2">
+  <title>Vergangene Veranstaltungen – Dietenbach parkrun</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="canonical" href="https://parkrun.freiburg.run/events.html">
+</head>
+<body>
+  <header class="site-header container" id="start">
+    <nav class="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html">Dietenbach parkrun</a>
+      <a class="button" href="index.html#veranstaltungen">Zurück zur Startseite</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <div class="container">
+        <span class="tag">Rückblicke</span>
+        <h1 class="page-title">Vergangene Veranstaltungen</h1>
+        <p class="section-intro">Ergebnisse aller vergangenen Dietenbach parkrun-Veranstaltungen seit dem 23. Oktober 2021.</p>
+        {{if .Events}}
+        <div class="table-scroll">
+          <table class="event-table">
+            <thead>
+              <tr>
+                <th scope="col">Nr.</th>
+                <th scope="col">Datum</th>
+                <th scope="col">Teilnehmer</th>
+                <th scope="col">Ergebnisse</th>
+                <th scope="col">Bericht</th>
+                <th scope="col">Fotos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .Events}}
+              <tr>
+                <td>{{.Index}}</td>
+                <td>{{.Date}}</td>
+                <td>{{.Runners}}</td>
+                <td><a href="{{.ResultsURL}}">Ergebnisse</a></td>
+                <td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td>
+                <td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+        {{else}}
+        <p class="card">Veranstaltungsdaten sind derzeit nicht verfügbar.</p>
+        {{end}}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

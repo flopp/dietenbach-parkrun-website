@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="style.css">
+  <link rel="canonical" href="https://parkrun.freiburg.run/">
 </head>
 <body>
   <header class="site-header container" id="start">
@@ -139,11 +140,38 @@
       <div class="container">
         <span class="tag">Rückblicke</span>
         <h2>Vergangene Veranstaltungen</h2>
-        <div class="card event-list">
-          <p>Den Dietenbach parkrun gibt es seit dem 23. Oktober 2021. Eine Übersicht vergangener Veranstaltungen wird hier ergänzt.</p>
-          <div class="event-item"><strong>Ergebnisse, Berichte &amp; Fotos</strong><br><span class="pending">Links werden hier gesammelt.</span></div>
-          <div class="event-item"><strong>Teilnehmendenzahl &amp; Wetter</strong><br><span class="pending">Informationen folgen je Veranstaltung.</span></div>
+        <p class="section-intro">Den Dietenbach parkrun gibt es seit dem 23. Oktober 2021. Hier findest du die Ergebnisse vergangener Veranstaltungen.</p>
+        {{if .Events}}
+        <div class="table-scroll">
+          <table class="event-table">
+            <thead>
+              <tr>
+                <th scope="col">Nr.</th>
+                <th scope="col">Datum</th>
+                <th scope="col">Teilnehmer</th>
+                <th scope="col">Ergebnisse</th>
+                <th scope="col">Bericht</th>
+                <th scope="col">Fotos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .LatestEvents}}
+              <tr>
+                <td>{{.Index}}</td>
+                <td>{{.Date}}</td>
+                <td>{{.Runners}}</td>
+                <td><a href="{{.ResultsURL}}">Ergebnisse</a></td>
+                <td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td>
+                <td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
         </div>
+        <p><a class="button" href="events.html">Alle vergangenen Veranstaltungen</a></p>
+        {{else}}
+        <p class="card">Veranstaltungsdaten sind derzeit nicht verfügbar.</p>
+        {{end}}
       </div>
     </section>
 
