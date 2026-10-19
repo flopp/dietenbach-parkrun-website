@@ -171,11 +171,16 @@ main section { padding-block: clamp(2.8rem, 7vw, 5rem); }
 }
 .button:hover { filter: brightness(.96); }
 footer { padding-block: 2rem 3rem; color: var(--muted); font-size: .92rem; }
-footer p { padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+footer h2 { font-size: 1.4rem; letter-spacing: -.03em; }
+footer h3 { margin-top: 1.25rem; }
+footer address { margin-bottom: 1rem; font-style: normal; }
+footer > .footer-meta { margin-top: 1rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
 
 @media (max-width: 760px) {
   .hero, .map-layout { grid-template-columns: 1fr; }
   .hero { gap: 1.25rem; }
+  .footer-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .navigation { align-items: flex-start; }
