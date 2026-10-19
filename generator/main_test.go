@@ -48,6 +48,10 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	writeJPEG(t, filepath.Join(imageDir, "unused.jpg"), 10, 10)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/leaflet/") {
+			fmt.Fprintf(w, "Leaflet asset: %s", strings.TrimPrefix(r.URL.Path, "/leaflet/"))
+			return
+		}
 		if got, want := r.URL.Path, "/v4/spreadsheets/test-sheet/values/'Parkrun'!A:ZZ"; got != want {
 			t.Errorf("Sheets API path = %q, want %q", got, want)
 		}
@@ -61,7 +65,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := generateWithDependencies(sourceDir, imageDir, outputDir, configPath, server.Client(), server.URL); err != nil {
+	if err := generateWithDependencies(sourceDir, imageDir, outputDir, configPath, server.Client(), server.URL, server.URL+"/leaflet"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -137,6 +141,14 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 			t.Errorf("asset %s was not copied: %v", name, err)
 		} else if string(content) != name {
 			t.Errorf("asset %s = %q, want %q", name, content, name)
+		}
+	}
+	for _, asset := range leafletAssets {
+		content, err := os.ReadFile(filepath.Join(outputDir, "leaflet", filepath.FromSlash(asset.outputPath)))
+		if err != nil {
+			t.Errorf("Leaflet asset %s was not downloaded: %v", asset.outputPath, err)
+		} else if want := "Leaflet asset: " + asset.sourcePath; string(content) != want {
+			t.Errorf("Leaflet asset %s = %q, want %q", asset.outputPath, content, want)
 		}
 	}
 }

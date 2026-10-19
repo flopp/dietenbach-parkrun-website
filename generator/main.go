@@ -25,6 +25,21 @@ import (
 const maxImageDimension = 512
 const latestEventCount = 5
 const sheetsAPIURL = "https://sheets.googleapis.com"
+const leafletAssetsBaseURL = "https://unpkg.com/leaflet@1.9.4"
+
+var leafletAssets = []struct {
+	sourcePath string
+	outputPath string
+}{
+	{"dist/leaflet.css", "leaflet.css"},
+	{"dist/leaflet.js", "leaflet.js"},
+	{"dist/images/layers.png", "images/layers.png"},
+	{"dist/images/layers-2x.png", "images/layers-2x.png"},
+	{"dist/images/marker-icon.png", "images/marker-icon.png"},
+	{"dist/images/marker-icon-2x.png", "images/marker-icon-2x.png"},
+	{"dist/images/marker-shadow.png", "images/marker-shadow.png"},
+	{"LICENSE", "LICENSE"},
+}
 
 var imageSource = regexp.MustCompile(`(src=["'])\.\./images/([^"']+)(["'])`)
 
@@ -70,10 +85,10 @@ func main() {
 
 func generate(sourceDir, imageDir, outputDir, configPath string) error {
 	client := &http.Client{Timeout: 30 * time.Second}
-	return generateWithDependencies(sourceDir, imageDir, outputDir, configPath, client, sheetsAPIURL)
+	return generateWithDependencies(sourceDir, imageDir, outputDir, configPath, client, sheetsAPIURL, leafletAssetsBaseURL)
 }
 
-func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string, client *http.Client, apiURL string) error {
+func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string, client *http.Client, apiURL, leafletBaseURL string) error {
 	settings, err := readConfig(configPath)
 	if err != nil {
 		return err
@@ -128,8 +143,39 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 			return fmt.Errorf("copy site asset %q: %w", name, err)
 		}
 	}
+	if err := downloadLeafletAssets(client, leafletBaseURL, filepath.Join(outputDir, "leaflet")); err != nil {
+		return err
+	}
 
 	fmt.Printf("Generated site in %s\n", outputDir)
+	return nil
+}
+
+func downloadLeafletAssets(client *http.Client, baseURL, outputDir string) error {
+	for _, asset := range leafletAssets {
+		requestURL := strings.TrimRight(baseURL, "/") + "/" + asset.sourcePath
+		response, err := client.Get(requestURL)
+		if err != nil {
+			return fmt.Errorf("download Leaflet asset %q: %w", asset.sourcePath, err)
+		}
+		if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+			response.Body.Close()
+			return fmt.Errorf("download Leaflet asset %q: server returned HTTP %s", asset.sourcePath, response.Status)
+		}
+
+		destination := filepath.Join(outputDir, filepath.FromSlash(asset.outputPath))
+		if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+			response.Body.Close()
+			return fmt.Errorf("create directory for Leaflet asset %q: %w", asset.outputPath, err)
+		}
+		if err := writeFile(destination, response.Body); err != nil {
+			response.Body.Close()
+			return fmt.Errorf("save Leaflet asset %q: %w", asset.outputPath, err)
+		}
+		if err := response.Body.Close(); err != nil {
+			return fmt.Errorf("finish downloading Leaflet asset %q: %w", asset.outputPath, err)
+		}
+	}
 	return nil
 }
 
