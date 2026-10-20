@@ -39,7 +39,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(`{"google":{"api_key":"test-key","sheet_id":"test-sheet"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"style.css", "main.js", "course.geojson"} {
+	for _, name := range []string{"style.css", "main.js", "course.geojson", "counter.php"} {
 		if err := os.WriteFile(filepath.Join(sourceDir, name), []byte(name), 0o644); err != nil {
 			t.Fatal(err)
 		}
