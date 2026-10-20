@@ -55,10 +55,11 @@ if (window.L) {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
-  L.marker(meetingPoint).addTo(map).bindPopup("Treffpunkt · Dietenbachpark");
+  const meetingMarker = L.marker(meetingPoint).addTo(map).bindPopup("Treffpunkt · Dietenbachpark");
 
   fitMap(map, [meetingPoint]);
   map.whenReady(() => {
+    meetingMarker.openPopup();
     document.querySelector(".map-fallback")?.remove();
   });
 
@@ -81,11 +82,17 @@ if (window.L) {
     ["Fußballplatz (FFC)", [48.004209, 7.803190]],
     ["Tischtennis", [48.002163, 7.804931]]
   ];
+  let selectedAmenityMarker;
   parkAmenities.forEach(([name, coordinates]) => {
-    L.marker(coordinates).addTo(parkAmenitiesMap).bindPopup(name);
+    const m = L.marker(coordinates);
+    m.addTo(parkAmenitiesMap).bindPopup(name);
+    if (name.includes("Parkplatz")) {
+      selectedAmenityMarker = m;
+    }
   });
   fitMap(parkAmenitiesMap, parkAmenities.map(([, coordinates]) => coordinates));
   parkAmenitiesMap.whenReady(() => {
+    selectedAmenityMarker?.openPopup();
     document.querySelector("#park-amenities-map .map-fallback")?.remove();
   });
 
@@ -101,6 +108,7 @@ if (window.L) {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(cafeMap);
+  let selectedCafeMarker;
   [
     ["Bäckerei Heitzmann in Weingarten", cafeLocations[0]],
     ["Küchenschelle", cafeLocations[1]],
@@ -108,10 +116,14 @@ if (window.L) {
     ["Picknick am Dietenbachsee · erster Samstag im Monat, nur im Sommer", cafeLocations[3]],
     ["Kaisers Gute Backstube „artisane“ in Rieselfeld", cafeLocations[4]]
   ].forEach(([name, coordinates]) => {
-    L.marker(coordinates).addTo(cafeMap).bindPopup(name);
+    const m = L.marker(coordinates).addTo(cafeMap).bindPopup(name);
+    if (name.includes("Picknick")) {
+      selectedCafeMarker = m;
+    }
   });
   fitMap(cafeMap, cafeLocations);
   cafeMap.whenReady(() => {
+    selectedCafeMarker?.openPopup();
     document.querySelector("#cafe-map .map-fallback")?.remove();
   });
 
@@ -129,15 +141,20 @@ if (window.L) {
       return response.json();
     })
     .then((course) => {
+      let meetingPointLayer;
       const route = L.geoJSON(course, {
-        style: { color: "#d98200", weight: 5, opacity: 0.9 },
+        style: { color: "#ff0000", weight: 3, opacity: 0.9 },
         onEachFeature: (feature, layer) => {
           if (feature.properties?.name) {
             layer.bindPopup(feature.properties.name);
+            if (feature.properties.name.includes("Treffpunkt")) {
+              meetingPointLayer = layer;
+            }
           }
         }
       }).addTo(courseMap);
       fitMap(courseMap, [route.getBounds()]);
+      meetingPointLayer?.openPopup();
       document.querySelector("#course-map .map-fallback")?.remove();
     })
     .catch((error) => {

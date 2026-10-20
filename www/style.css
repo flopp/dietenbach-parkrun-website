@@ -126,14 +126,10 @@ main section { padding-block: clamp(2.8rem, 7vw, 5rem); }
 }
 .map-layout { display: grid; grid-template-columns: 1.25fr 1.0fr; gap: 1rem; }
 #map, #course-map, #cafe-map, #park-amenities-map {
-  margin-top: 1rem;
   min-height: 30rem;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--soft);
-  box-shadow: var(--shadow);
 }
+
 .map-fallback {
   display: grid;
   min-height: 22rem;
@@ -141,6 +137,9 @@ main section { padding-block: clamp(2.8rem, 7vw, 5rem); }
   padding: 2rem;
   color: var(--muted);
   text-align: center;
+}
+.top-margin {
+  margin-top: 1.6rem;
 }
 .pending { color: var(--muted); font-style: italic; }
 .event-list { display: grid; gap: .75rem; }
