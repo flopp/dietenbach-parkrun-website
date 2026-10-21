@@ -16,8 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -53,16 +51,22 @@ type config struct {
 type sheetData struct {
 	Headers []string
 	Rows    [][]string
+	AllRows [][]string
 }
 
 type event struct {
 	Index        string
 	Date         string
+	Special      string
 	Runners      string
 	ResultsURL   string
 	ReportURL    string
 	ReportAuthor string
 	PhotosURL    string
+}
+
+func (e *event) IndexDate() string {
+	return fmt.Sprintf("%s #%s", e.Date, e.Index)
 }
 
 type pageData struct {
@@ -108,11 +112,11 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 		return fmt.Errorf("read HTML template %q: %w", templatePath, err)
 	}
 
-	displayEvents, err := prepareEvents(events)
+	displayEvents, latestEvents, err := prepareEvents(events)
 	if err != nil {
 		return err
 	}
-	data := pageData{Events: displayEvents, LatestEvents: latestEvents(displayEvents)}
+	data := pageData{Events: displayEvents, LatestEvents: latestEvents}
 	rendered, err := renderTemplate(string(templateContent), data)
 	if err != nil {
 		return fmt.Errorf("render HTML template: %w", err)
@@ -269,76 +273,80 @@ func parseSheetValues(values [][]any, today time.Time) (sheetData, error) {
 		values []string
 		date   time.Time
 	}
-	rows := make([]eventRow, 0, len(values)-1)
-	for rowIndex, sourceRow := range values[1:] {
+	rows := make([][]string, 0, len(values)-1)
+	for _, sourceRow := range values[1:] {
 		row := make([]string, columnCount)
 		for column, value := range sourceRow {
 			row[column] = sheetCell(value)
 		}
-		indexValue := strings.TrimSpace(row[indexColumn])
-		if indexValue == "" {
-			continue
-		}
-		if _, err := strconv.Atoi(indexValue); err != nil {
-			continue
-		}
-		dateValue := strings.TrimSpace(row[dateColumn])
-		if dateValue == "" {
-			continue
-		}
-		eventDate, err := parseEventDate(dateValue, today.Location())
-		if err != nil {
-			return sheetData{}, fmt.Errorf("row %d has invalid date %q: %w", rowIndex+2, dateValue, err)
-		}
-		if eventDate.After(today) {
-			continue
-		}
-		rows = append(rows, eventRow{values: row, date: eventDate})
+		rows = append(rows, row)
 	}
-	sort.SliceStable(rows, func(i, j int) bool {
-		return rows[i].date.After(rows[j].date)
-	})
-	sortedRows := make([][]string, len(rows))
-	for index := range rows {
-		sortedRows[index] = rows[index].values
-	}
-	return sheetData{Headers: headers, Rows: sortedRows}, nil
+
+	return sheetData{Headers: headers, Rows: rows}, nil
 }
 
-func prepareEvents(data sheetData) ([]event, error) {
+func prepareEvents(data sheetData) ([]event, []event, error) {
 	columns := map[string]int{}
-	for _, name := range []string{"INDEX", "DATE", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS"} {
+	for _, name := range []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS"} {
 		index := findColumn(data.Headers, name)
 		if index < 0 {
-			return nil, fmt.Errorf("missing %s column in Parkrun sheet", name)
+			return nil, nil, fmt.Errorf("missing %s column in Parkrun sheet", name)
 		}
 		columns[name] = index
 	}
 
 	events := make([]event, 0, len(data.Rows))
+	latest := make([]event, 0, latestEventCount)
 	for _, row := range data.Rows {
 		cell := func(name string) string {
 			return strings.TrimSpace(row[columns[name]])
 		}
-		index := cell("INDEX")
-		events = append(events, event{
-			Index:        index,
-			Date:         cell("DATE"),
-			Runners:      cell("RUNNERS"),
-			ResultsURL:   "https://www.parkrun.com.de/dietenbach/results/" + index + "/",
-			ReportURL:    cell("REPORT"),
-			ReportAuthor: cell("AUTHOR"),
-			PhotosURL:    cell("PHOTOS"),
-		})
-	}
-	return events, nil
-}
 
-func latestEvents(rows []event) []event {
-	if len(rows) > latestEventCount {
-		rows = rows[:latestEventCount]
+		index := cell("INDEX")
+		date := cell("DATE")
+		special := cell("SPECIAL")
+		runners := cell("RUNNERS")
+		report := cell("REPORT")
+		author := cell("AUTHOR")
+		photos := cell("PHOTOS")
+
+		if runners != "" && len(latest) < latestEventCount {
+			latest = append(latest, event{
+				Index:        index,
+				Date:         date,
+				Special:      special,
+				Runners:      runners,
+				ResultsURL:   "https://www.parkrun.com.de/dietenbach/results/" + index + "/",
+				ReportURL:    report,
+				ReportAuthor: author,
+				PhotosURL:    photos,
+			})
+		}
+		if index == "" {
+			events = append(events, event{
+				Index:        index,
+				Date:         date,
+				Special:      special,
+				Runners:      runners,
+				ResultsURL:   "",
+				ReportURL:    report,
+				ReportAuthor: author,
+				PhotosURL:    photos,
+			})
+		} else {
+			events = append(events, event{
+				Index:        index,
+				Date:         date,
+				Special:      special,
+				Runners:      runners,
+				ResultsURL:   "https://www.parkrun.com.de/dietenbach/results/" + index + "/",
+				ReportURL:    report,
+				ReportAuthor: author,
+				PhotosURL:    photos,
+			})
+		}
 	}
-	return rows
+	return events, latest, nil
 }
 
 func findColumn(headers []string, names ...string) int {

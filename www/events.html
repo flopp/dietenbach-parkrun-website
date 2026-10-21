@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Ergebnisse und Rückblicke aller vergangenen Dietenbach parkrun-Veranstaltungen in Freiburg.">
   <meta name="theme-color" content="#f7f7f2">
-  <title>Vergangene Veranstaltungen – Dietenbach parkrun</title>
+  <title>Alle Veranstaltungen – Dietenbach parkrun</title>
   <link rel="stylesheet" href="style.css">
   <link rel="canonical" href="https://parkrun.freiburg.run/events.html">
 </head>
@@ -20,9 +20,8 @@
   <main>
     <section>
       <div class="container">
-        <span class="tag">Rückblicke</span>
-        <h1 class="page-title">Vergangene Veranstaltungen</h1>
-        <p class="section-intro">Ergebnisse aller vergangenen Dietenbach parkrun-Veranstaltungen seit dem 23. Oktober 2021.</p>
+        <h1 class="page-title">Alle Veranstaltungen</h1>
+        <p class="section-intro">Ergebnisse aller Dietenbach parkrun-Veranstaltungen seit dem 23. Oktober 2021.</p>
         {{if .Events}}
         <div class="table-scroll">
           <table class="event-table">
@@ -30,6 +29,7 @@
               <tr>
                 <th scope="col">Nr.</th>
                 <th scope="col">Datum</th>
+                <th scope="col">Special</th>
                 <th scope="col">Teilnehmer</th>
                 <th scope="col">Ergebnisse</th>
                 <th scope="col">Bericht</th>
@@ -41,8 +41,9 @@
               <tr>
                 <td>{{.Index}}</td>
                 <td>{{.Date}}</td>
+                <td>{{.Special}}</td>
                 <td>{{.Runners}}</td>
-                <td><a href="{{.ResultsURL}}">Ergebnisse</a></td>
+                <td>{{if .ResultsURL}}<a href="{{.ResultsURL}}">Ergebnisse</a>{{end}}</td>
                 <td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td>
                 <td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td>
               </tr>
