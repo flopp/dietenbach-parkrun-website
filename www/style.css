@@ -115,6 +115,22 @@ main section { padding-block: clamp(2.8rem, 7vw, 5rem); }
   object-fit: cover;
 }
 .card p:last-child { margin-bottom: 0; }
+.contact-list { margin: 0; padding: 0; list-style: none; }
+.contact-list li + li { margin-top: .9rem; }
+.contact-list a, .contact-item { display: flex; align-items: center; gap: .75rem; }
+.contact-item { align-items: flex-start; }
+.contact-item small { display: block; color: var(--muted); }
+.contact-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 1.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+.contact-icon .icon-fill { fill: currentColor; stroke: none; }
 .tag {
   display: inline-block;
   margin-bottom: .85rem;
