@@ -5,7 +5,7 @@
   --ink: #17211d;
   --muted: #59655f;
   --line: #dfe5df;
-  --accent: #e9a22b;
+  --accent: #FF9902;
   --accent-ink: #241b0b;
   --soft: #fff1d7;
   --shadow: 0 14px 36px rgb(28 45 35 / 8%);
@@ -105,6 +105,14 @@ main section { padding-block: clamp(2.8rem, 7vw, 5rem); }
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+img.card {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  width: 100%;
 }
 .card-image {
   display: block;
