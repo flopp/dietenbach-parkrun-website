@@ -8,10 +8,9 @@ themeButton.addEventListener("click", () => {
 
 const visitorCounts = {
   daily: document.querySelector("#visitor-count-daily"),
-  monthly: document.querySelector("#visitor-count-monthly"),
-  yearly: document.querySelector("#visitor-count-yearly"),
   total: document.querySelector("#visitor-count-total")
 };
+const visitorHistory = document.querySelector(".visitor-count-history");
 if (visitorCounts.total) {
   fetch("counter.php", { cache: "no-store" })
     .then((response) => {
@@ -23,12 +22,18 @@ if (visitorCounts.total) {
     .then((counts) => {
       if (Object.entries(visitorCounts).some(([key, element]) =>
         !element || !Number.isSafeInteger(counts[key]) || counts[key] < 0
-      )) {
+      ) || !visitorHistory || !Array.isArray(counts.dailyCounts) ||
+        counts.dailyCounts.length !== 7 ||
+        counts.dailyCounts.some((day) =>
+          !day || !Number.isSafeInteger(day.count) || day.count < 0
+        )) {
         throw new Error("Der Besucherzähler hat eine ungültige Antwort geliefert.");
       }
       Object.entries(visitorCounts).forEach(([key, element]) => {
         element.textContent = counts[key].toLocaleString("de-DE");
       });
+
+      visitorHistory.textContent = counts.dailyCounts.map(({ count }) => count).join(" ");
     })
     .catch((error) => {
       console.error(error);
@@ -37,6 +42,9 @@ if (visitorCounts.total) {
           element.textContent = "nicht verfügbar";
         }
       });
+      if (visitorHistory) {
+        visitorHistory.textContent = "nicht verfügbar";
+      }
     });
 }
 

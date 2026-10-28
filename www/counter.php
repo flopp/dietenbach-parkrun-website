@@ -3,10 +3,10 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 
 $now = new DateTimeImmutable('now', new DateTimeZone('Europe/Berlin'));
+$today = $now->format('Y-m-d');
+$firstDay = $now->modify('-6 days')->format('Y-m-d');
 $periods = [
-    'day' => $now->format('Y-m-d'),
-    'month' => $now->format('Y-m'),
-    'year' => $now->format('Y'),
+    'day' => $today,
 ];
 
 $counter = fopen(__DIR__ . '/visitor-count.txt', 'c+');
@@ -58,6 +58,8 @@ if ($value === '') {
     }
 }
 
+unset($state['periods']['month'], $state['periods']['year']);
+
 $counts = [];
 foreach ($periods as $period => $key) {
     if (!array_key_exists($period, $state['periods'])) {
@@ -95,6 +97,53 @@ foreach ($periods as $period => $key) {
 
     $counts[$period] = $current['count'] + 1;
     $state['periods'][$period] = ['key' => $key, 'count' => $counts[$period]];
+}
+
+if (!array_key_exists('days', $state)) {
+    $state['days'] = [];
+} elseif (!is_array($state['days'])) {
+    error_log('Visitor counter file contains invalid daily data.');
+    flock($counter, LOCK_UN);
+    fclose($counter);
+    http_response_code(500);
+    echo json_encode(['error' => 'Counter unavailable']);
+    exit;
+}
+
+$days = $state['days'];
+foreach ($days as $day => $count) {
+    $date = is_string($day) && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $day) === 1
+        ? DateTimeImmutable::createFromFormat('!Y-m-d', $day, $now->getTimezone())
+        : false;
+    if (
+        $date === false
+        || $date->format('Y-m-d') !== $day
+        || !is_int($count)
+        || $count < 0
+    ) {
+        error_log('Visitor counter file contains invalid daily data.');
+        flock($counter, LOCK_UN);
+        fclose($counter);
+        http_response_code(500);
+        echo json_encode(['error' => 'Counter unavailable']);
+        exit;
+    }
+
+    if ($day < $firstDay || $day > $today) {
+        unset($days[$day]);
+    }
+}
+$days[$today] = $counts['day'];
+
+$state['days'] = $days;
+
+$dailyCounts = [];
+for ($offset = 0; $offset <= 6; $offset++) {
+    $date = $now->modify("-{$offset} days")->format('Y-m-d');
+    $dailyCounts[] = [
+        'date' => $date,
+        'count' => $days[$date] ?? 0,
+    ];
 }
 
 if ($state['total'] === PHP_INT_MAX) {
@@ -138,7 +187,6 @@ flock($counter, LOCK_UN);
 fclose($counter);
 echo json_encode([
     'daily' => $counts['day'],
-    'monthly' => $counts['month'],
-    'yearly' => $counts['year'],
+    'dailyCounts' => $dailyCounts,
     'total' => $state['total'],
 ]);
