@@ -161,6 +161,17 @@ img.card {
   margin-top: 1.6rem;
 }
 .pending { color: var(--muted); font-style: italic; }
+.weather-card { max-width: 48rem; }
+.weather-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+.weather-metrics div { padding: .75rem; border-radius: .75rem; background: var(--soft); }
+.weather-metrics dt { color: var(--muted); font-size: .9rem; }
+.weather-metrics dd { margin: .25rem 0 0; font-size: 1.15rem; font-weight: 750; }
+.weather-attribution { margin: 1rem 0 0; color: var(--muted); font-size: .85rem; }
 .event-list { display: grid; gap: .75rem; }
 .event-item { padding-block: .9rem; border-bottom: 1px solid var(--line); }
 .event-item:last-child { border-bottom: 0; }
@@ -203,6 +214,7 @@ footer > .footer-meta { margin-top: 1rem; padding-top: 1.25rem; border-top: 1px 
   .navigation { align-items: flex-start; }
   .nav-links { display: none; }
   .grid { grid-template-columns: 1fr; }
+  .weather-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #map, .map-fallback { min-height: 18rem; }
 }
 @media (prefers-reduced-motion: reduce) {

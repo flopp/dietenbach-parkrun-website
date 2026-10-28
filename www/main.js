@@ -48,6 +48,128 @@ if (visitorCounts.total) {
     });
 }
 
+const weatherStatus = document.querySelector("#weather-status");
+const weatherDetails = document.querySelector("#weather-details");
+const weatherDateLabel = document.querySelector("#weather-date");
+
+const nextSaturdayAtNineInFreiburg = (now = new Date()) => {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Berlin",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "short",
+      hour: "2-digit",
+      hourCycle: "h23"
+    }).formatToParts(now);
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    const currentDate = new Date(Date.UTC(
+      Number(values.year),
+      Number(values.month) - 1,
+      Number(values.day)
+    ));
+    const daysUntilSaturday = (6 - currentDate.getUTCDay() + 7) % 7;
+    const daysUntilEvent = daysUntilSaturday === 0 && Number(values.hour) >= 9
+      ? 7
+      : daysUntilSaturday;
+    currentDate.setUTCDate(currentDate.getUTCDate() + daysUntilEvent);
+    return currentDate.toISOString().slice(0, 10);
+};
+
+const weatherDescription = (code) => ({
+    0: "Sonnig",
+    1: "Überwiegend sonnig",
+    2: "Teilweise bewölkt",
+    3: "Bewölkt",
+    45: "Neblig",
+    48: "Nebel mit Reif",
+    51: "Leichter Nieselregen",
+    53: "Nieselregen",
+    55: "Starker Nieselregen",
+    56: "Gefrierender Nieselregen",
+    57: "Starker gefrierender Nieselregen",
+    61: "Leichter Regen",
+    63: "Regen",
+    65: "Starker Regen",
+    66: "Gefrierender Regen",
+    67: "Starker gefrierender Regen",
+    71: "Leichter Schneefall",
+    73: "Schneefall",
+    75: "Starker Schneefall",
+    77: "Schneegriesel",
+    80: "Leichte Regenschauer",
+    81: "Regenschauer",
+    82: "Starke Regenschauer",
+    85: "Leichte Schneeschauer",
+    86: "Starke Schneeschauer",
+    95: "Gewitter",
+    96: "Gewitter mit leichtem Hagel",
+    99: "Gewitter mit starkem Hagel"
+})[code] ?? "Wetterlage nicht bekannt";
+
+if (weatherStatus && weatherDetails && weatherDateLabel) {
+    const eventDate = nextSaturdayAtNineInFreiburg();
+    weatherDateLabel.textContent = `Vorhersage für ${new Intl.DateTimeFormat("de-DE", {
+      timeZone: "Europe/Berlin",
+      weekday: "long",
+      day: "numeric",
+      month: "long"
+    }).format(new Date(`${eventDate}T12:00:00Z`))} um 9:00 Uhr im Dietenbachpark.`;
+
+    const weatherUrl = new URL("https://api.open-meteo.com/v1/forecast");
+    weatherUrl.search = new URLSearchParams({
+      latitude: "48.001265",
+      longitude: "7.806430",
+      hourly: "temperature_2m,precipitation_probability,weather_code,wind_speed_10m",
+      timezone: "Europe/Berlin",
+      forecast_days: "16"
+    });
+
+    fetch(weatherUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Wettervorhersage konnte nicht geladen werden (HTTP ${response.status}).`);
+        }
+        return response.json();
+      })
+      .then((forecast) => {
+        const hourIndex = forecast.hourly?.time?.indexOf(`${eventDate}T09:00`);
+        const temperature = forecast.hourly?.temperature_2m?.[hourIndex];
+        const precipitation = forecast.hourly?.precipitation_probability?.[hourIndex];
+        const weatherCode = forecast.hourly?.weather_code?.[hourIndex];
+        const windSpeed = forecast.hourly?.wind_speed_10m?.[hourIndex];
+        if (hourIndex < 0 || ![temperature, precipitation, weatherCode, windSpeed].every(Number.isFinite)) {
+          throw new Error("Die Wettervorhersage enthält keine vollständigen Daten für den parkrun.");
+        }
+
+        const metrics = [
+          ["Wetter", weatherDescription(weatherCode)],
+          ["Temperatur", `${Math.round(temperature)} °C`],
+          ["Regenrisiko", `${Math.round(precipitation)} %`],
+          ["Wind", `${Math.round(windSpeed)} km/h`]
+        ];
+        const list = document.createElement("dl");
+        list.className = "weather-metrics";
+        metrics.forEach(([label, value]) => {
+          const item = document.createElement("div");
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = value;
+          item.append(term, description);
+          list.append(item);
+        });
+        weatherDetails.replaceChildren(list);
+        weatherDetails.hidden = false;
+        weatherStatus.remove();
+      })
+      .catch((error) => {
+        console.error(error);
+        weatherStatus.classList.remove("pending");
+        weatherStatus.textContent = "Die Wettervorhersage ist derzeit nicht verfügbar. Bitte schau später noch einmal vorbei.";
+      });
+}
+
 const fitMap = (map, markers) => {
   const parkBounds = L.latLngBounds(
     [47.999593, 7.798834],
