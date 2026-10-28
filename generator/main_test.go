@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"image"
 	"image/color"
@@ -28,11 +30,11 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 		}
 	}
 
-	template := `<img src="../images/park.jpg"><script src="main.js"></script>{{if .Events}}<table><thead><tr><th>Nr.</th><th>Datum</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .LatestEvents}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>{{end}}<a href="events.html">All events</a>`
+	template := `<link rel="stylesheet" href="style.css"><img src="../images/park.jpg"><script src="main.js"></script>{{if .Events}}<table><thead><tr><th>Nr.</th><th>Datum</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .LatestEvents}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>{{end}}<a href="events.html">All events</a>`
 	if err := os.WriteFile(filepath.Join(sourceDir, "index.html"), []byte(template), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	eventsTemplate := `<table><thead><tr><th>Nr.</th><th>Datum</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .Events}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>`
+	eventsTemplate := `<link rel="stylesheet" href="style.css"><table><thead><tr><th>Nr.</th><th>Datum</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .Events}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>`
 	if err := os.WriteFile(filepath.Join(sourceDir, "events.html"), []byte(eventsTemplate), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +75,11 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(html), `<img src="img/park.jpg"><script src="main.js"></script>`) {
+	styleChecksum := sha256.Sum256([]byte("style.css"))
+	scriptChecksum := sha256.Sum256([]byte("main.js"))
+	stylesheetPath := "style." + hex.EncodeToString(styleChecksum[:]) + ".css"
+	scriptPath := "main." + hex.EncodeToString(scriptChecksum[:]) + ".js"
+	if !strings.Contains(string(html), `<link rel="stylesheet" href="`+stylesheetPath+`"><img src="img/park.jpg"><script src="`+scriptPath+`"></script>`) {
 		t.Fatalf("generated HTML did not rewrite image path: %s", html)
 	}
 	for _, heading := range []string{"Nr.", "Datum", "Teilnehmer", "Ergebnisse", "Bericht", "Fotos"} {
@@ -116,6 +122,9 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if !strings.Contains(string(allEventsHTML), "<td>11</td>") || !strings.Contains(string(allEventsHTML), "<td>17</td>") {
 		t.Errorf("all-events page does not include the full event range: %s", allEventsHTML)
 	}
+	if !strings.Contains(string(allEventsHTML), `href="`+stylesheetPath+`"`) {
+		t.Errorf("all-events page does not reference the fingerprinted stylesheet: %s", allEventsHTML)
+	}
 
 	imageFile, err := os.Open(filepath.Join(outputDir, "img", "park.jpg"))
 	if err != nil {
@@ -135,12 +144,23 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(outputDir, "img", "unused.jpg")); !os.IsNotExist(err) {
 		t.Errorf("unreferenced image should not be copied, stat error = %v", err)
 	}
-	for _, name := range []string{"style.css", "main.js", "course.geojson"} {
+	for _, name := range []string{"course.geojson"} {
 		content, err := os.ReadFile(filepath.Join(outputDir, name))
 		if err != nil {
 			t.Errorf("asset %s was not copied: %v", name, err)
 		} else if string(content) != name {
 			t.Errorf("asset %s = %q, want %q", name, content, name)
+		}
+	}
+	for name, want := range map[string]string{
+		stylesheetPath: "style.css",
+		scriptPath:     "main.js",
+	} {
+		content, err := os.ReadFile(filepath.Join(outputDir, name))
+		if err != nil {
+			t.Errorf("fingerprinted asset %s was not written: %v", name, err)
+		} else if string(content) != want {
+			t.Errorf("fingerprinted asset %s = %q, want %q", name, content, want)
 		}
 	}
 	for _, asset := range leafletAssets {

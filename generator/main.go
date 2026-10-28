@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -106,6 +108,15 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
+	stylesheetPath, err := copyFingerprintAsset(sourceDir, outputDir, "style.css")
+	if err != nil {
+		return fmt.Errorf("copy stylesheet: %w", err)
+	}
+	scriptPath, err := copyFingerprintAsset(sourceDir, outputDir, "main.js")
+	if err != nil {
+		return fmt.Errorf("copy JavaScript: %w", err)
+	}
+
 	templatePath := filepath.Join(sourceDir, "index.html")
 	templateContent, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -125,6 +136,7 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 	if err != nil {
 		return err
 	}
+	html = fingerprintAssetReferences(html, stylesheetPath, scriptPath)
 	if err := os.WriteFile(filepath.Join(outputDir, "index.html"), []byte(html), 0o644); err != nil {
 		return fmt.Errorf("write generated HTML: %w", err)
 	}
@@ -138,11 +150,12 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 	if err != nil {
 		return fmt.Errorf("render events page template: %w", err)
 	}
+	rendered = fingerprintAssetReferences(rendered, stylesheetPath, scriptPath)
 	if err := os.WriteFile(filepath.Join(outputDir, "events.html"), []byte(rendered), 0o644); err != nil {
 		return fmt.Errorf("write generated events page: %w", err)
 	}
 
-	for _, name := range []string{"style.css", "main.js", "course.geojson", "counter.php"} {
+	for _, name := range []string{"course.geojson", "counter.php"} {
 		if err := copyFile(filepath.Join(sourceDir, name), filepath.Join(outputDir, name)); err != nil {
 			return fmt.Errorf("copy site asset %q: %w", name, err)
 		}
@@ -153,6 +166,27 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 
 	fmt.Printf("Generated site in %s\n", outputDir)
 	return nil
+}
+
+func copyFingerprintAsset(sourceDir, outputDir, name string) (string, error) {
+	content, err := os.ReadFile(filepath.Join(sourceDir, name))
+	if err != nil {
+		return "", err
+	}
+
+	checksum := sha256.Sum256(content)
+	extension := filepath.Ext(name)
+	fingerprintedName := strings.TrimSuffix(name, extension) + "." + hex.EncodeToString(checksum[:]) + extension
+	if err := os.WriteFile(filepath.Join(outputDir, fingerprintedName), content, 0o644); err != nil {
+		return "", err
+	}
+	return fingerprintedName, nil
+}
+
+func fingerprintAssetReferences(html, stylesheetPath, scriptPath string) string {
+	html = strings.ReplaceAll(html, `href="style.css"`, `href="`+stylesheetPath+`"`)
+	html = strings.ReplaceAll(html, `src="main.js"`, `src="`+scriptPath+`"`)
+	return html
 }
 
 func downloadLeafletAssets(client *http.Client, baseURL, outputDir string) error {
