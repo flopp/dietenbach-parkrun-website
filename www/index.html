@@ -6,26 +6,31 @@
   <meta name="description" content="Informationen zum Dietenbach parkrun in Freiburg: Park, Strecke, Teilnahme und Treffpunkt.">
   <meta name="theme-color" content="#f7f7f2">
   <title>Dietenbach parkrun – Freiburg</title>
+  <link rel="stylesheet" href="pico.min.css">
   <link rel="stylesheet" href="leaflet/leaflet.css">
   <link rel="stylesheet" href="style.css">
   <link rel="canonical" href="https://parkrun.freiburg.run/">
 </head>
 <body>
-  <header class="site-header container" id="start">
-    <nav class="navigation" aria-label="Hauptnavigation">
-      <a class="brand" href="#start">Dietenbach parkrun</a>
-      <div class="nav-links">
-        <a href="#treffpunkt">Treffpunkt</a>
-        <a href="#wetter">Wetter</a>
-        <a href="#anreise">Anreise</a>
-        <a href="#strecke">Strecke</a>
-        <a href="#kontakt">Kontakt</a>
-        <a href="#mitmachen">Mitmachen</a>
-        <a href="#veranstaltungen">Veranstaltungen</a>
-        <a href="#cafes">Cafés</a>
-        <a href="#park-angebote">Im Park</a>
-      </div>
-      <button class="theme-toggle" type="button" aria-pressed="false">Dunkles Design</button>
+  <header class="container" id="start">
+    <nav aria-label="Hauptnavigation">
+      <ul>
+        <li><a class="brand" href="#start"><strong>Dietenbach parkrun</strong></a></li>
+      </ul>
+      <ul class="nav-links">
+        <li><a href="#treffpunkt">Treffpunkt</a></li>
+        <li><a href="#wetter">Wetter</a></li>
+        <li><a href="#anreise">Anreise</a></li>
+        <li><a href="#strecke">Strecke</a></li>
+        <li><a href="#kontakt">Kontakt</a></li>
+        <li><a href="#mitmachen">Mitmachen</a></li>
+        <li><a href="#veranstaltungen">Veranstaltungen</a></li>
+        <li><a href="#cafes">Cafés</a></li>
+        <li><a href="#park-angebote">Im Park</a></li>
+      </ul>
+      <ul>
+        <li><button class="theme-toggle outline secondary" type="button" aria-pressed="false">Dunkles Design</button></li>
+      </ul>
     </nav>
 
     <div class="hero">
@@ -34,13 +39,13 @@
         <h1>Dietenbach parkrun.</h1>
         <p class="intro">Ein kostenloser 5-km-Lauf im Freiburger Dietenbachpark – jeden Samstag um 9:00 Uhr.</p>
         <p>Seit dem 23. Oktober 2021 bringt der Dietenbach parkrun Menschen im Park zusammen. Organisiert wird die Veranstaltung von einem Freiwilligenteam.</p>
-        <a class="button" href="#mitmachen">Was ist parkrun?</a>
+        <a role="button" href="#mitmachen">Was ist parkrun?</a>
       </div>
-      <aside class="hero-note">
+      <article class="hero-note">
         <strong>Alle sind willkommen</strong>
         <p>Bei uns treffen sich Menschen unterschiedlichen Alters und mit ganz verschiedenen Lauferfahrungen. Das inklusive, internationale Teilnehmerfeld ist vielfältig – ob du läufst, walkst oder mit anderen ins Gespräch kommst.</p>
         <p>Alle Kontakt- und Social-Media-Kanäle findest du unter <a href="#kontakt">Kontakt &amp; folge uns</a>.</p>
-      </aside>
+      </article>
     </div>
   </header>
 
@@ -53,10 +58,10 @@
           Wir treffen uns jeden Samstag um 8:45 Uhr im Dietenbachpark - der Lauf startet nach einer Begrüßung um 9:00 Uhr.
         </p>
         <div class="map-layout">
-          <div class="card" id="map" aria-label="Übersichtskarte des Dietenbachparks">
+          <div class="map" id="map" aria-label="Übersichtskarte des Dietenbachparks">
             <div class="map-fallback">Die Übersichtskarte wird geladen.</div>
           </div>
-          <div class="card">
+          <article>
             <img class="card-image" src="../images/treffpunkt.jpg" alt="Teilnehmende versammeln sich zum Start im Dietenbachpark" loading="lazy" decoding="async">
             <h3>Treffpunkt</h3>
             <p>Unser Treffpunkt befindet sich in der Nähe des Parkplatzes, direkt neben dem Spielplatz.
@@ -64,7 +69,7 @@
               Vor dem Lauf gibt es eine Begrüßung und Einweisung für neue Teilnehmende.
               Der Treffpunkt ist zugleich der Zielbereich.</p>
             <p><a href="https://maps.app.goo.gl/QY4qKceczhPt32cKA" target="_blank" rel="noopener noreferrer">Treffpunkt in Google Maps öffnen</a></p>
-          </div>
+          </article>
         </div>
       </div>
     </section>
@@ -74,7 +79,7 @@
         <span class="tag">Für deinen parkrun</span>
         <h2>Wetter am Samstag</h2>
         <p class="section-intro" id="weather-date">Die Vorhersage für den nächsten parkrun wird geladen.</p>
-        <article class="card weather-card" aria-live="polite">
+        <article class="weather-card" aria-live="polite">
           <p class="pending" id="weather-status" role="status">Die Wettervorhersage wird geladen.</p>
           <div class="weather-details" id="weather-details" hidden></div>
           <p class="weather-attribution">Wetterdaten von <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.</p>
@@ -87,19 +92,19 @@
         <span class="tag">Gut zu wissen</span>
         <h2>Anreise zum Dietenbach parkrun</h2>
         <p class="section-intro">Du erreichst den Treffpunkt im Dietenbachpark mit dem Fahrrad, Straßenbahn oder dem Auto.</p>
-        <div class="grid">
-          <article class="card">
+        <div class="cards">
+          <article>
             <h3>Mit dem Fahrrad</h3>
             <p>Du kannst dein Fahrrad direkt am Treffpunkt im Dietenbachpark abstellen.</p>
             <p><a href="https://maps.app.goo.gl/QY4qKceczhPt32cKA" target="_blank" rel="noopener noreferrer">Treffpunkt in Google Maps öffnen</a></p>
           </article>
-          <img class="card" src="../images/fahrrad.jpg" alt="Fahrräder am Treffpunkt im Dietenbachpark" loading="lazy" decoding="async">
-          <article class="card">
+          <img class="photo" src="../images/fahrrad.jpg" alt="Fahrräder am Treffpunkt im Dietenbachpark" loading="lazy" decoding="async">
+          <article>
             <h3>Mit der Straßenbahn</h3>
             <p>Fahre mit der Straßenbahn-Linie 3 bis zur Haltestelle Rohrgraben. Von dort sind es etwa 400 m zu Fuß bis zum Dietenbach parkrun.</p>
             <p><a href="https://maps.app.goo.gl/dxecgk5zSYSWZ3vi9" target="_blank" rel="noopener noreferrer">Haltestelle Rohrgraben in Google Maps öffnen</a></p>
           </article>
-          <article class="card">
+          <article>
             <h3>Mit dem Auto</h3>
             <p>Ein kostenloser Parkplatz befindet sich am Robert-Ruh-Weg. Von dort sind es etwa 200 m zu Fuß bis zum Treffpunkt.</p>
             <p><a href="https://maps.app.goo.gl/F1C4nRoccojuT9ABA" target="_blank" rel="noopener noreferrer">Parkplatz in Google Maps öffnen</a></p>
@@ -112,8 +117,8 @@
       <div class="container">
         <span class="tag">Vor Ort</span>
         <h2>Die Strecke</h2>
-        <div class="grid">
-          <article class="card">
+        <div class="cards">
+          <article>
             <h3>Streckenverlauf</h3>
             <p>Die 5km-Strecke führt über zwei Runden durch den Dietenbachpark und um den Dietenbachsee.
               Auf einem etwa 500 m langen Abschnitt kommen sich die Läuferinnen und Läufer auf parallelen Wegen entgegen.
@@ -121,19 +126,19 @@
               Auf deiner ersten Runde läufst du am Zielkanal vorbei, nach der zweiten Runde läufst du in den Zielkanal ein, wo die Helfer dann deine Zeit nehmen.
             </p>
           </article>
-          <img class="card" src="../images/runners.jpg" alt="Teilnehmende laufen gemeinsam auf einer schattigen Parkstrecke" loading="lazy" decoding="async">
-          <article class="card">
+          <img class="photo" src="../images/runners.jpg" alt="Teilnehmende laufen gemeinsam auf einer schattigen Parkstrecke" loading="lazy" decoding="async">
+          <article>
             <h3>Untergrund</h3>
             <p>Die Strecke ist größtenteils asphaltiert, einzelne Abschnitte sind geschottert.
               Insgesamt ist sie gut laufbar und auch für Kinderwagen geeignet.</p>
           </article>
-          <article class="card">
+          <article>
             <h3>Start & Ziel</h3>
             <p>Das Ziel befindet sich direkt am Treffpunkt, der Start ist ca 100m entfernt - nach der Begrüßung geht man zusammen zum Start.</p>
           </article>
         </div>
 
-        <div class="card top-margin" id="course-map" aria-label="Karte des Dietenbach-parkrun-Streckenverlaufs">
+        <div class="map" id="course-map" aria-label="Karte des Dietenbach-parkrun-Streckenverlaufs">
           <div class="map-fallback">Die Streckenkarte wird geladen.</div>
         </div>
       </div>
@@ -144,8 +149,8 @@
         <span class="tag">In Verbindung bleiben</span>
         <h2>Kontakt &amp; folge uns</h2>
         <p class="section-intro">Du hast eine Frage oder möchtest dich mit der Dietenbach-parkrun-Community vernetzen? Hier findest du alle Kontaktmöglichkeiten.</p>
-        <div class="grid">
-          <article class="card">
+        <div class="cards">
+          <article>
             <h3>Online</h3>
             <ul class="contact-list">
               <li>
@@ -174,7 +179,7 @@
               </li>
             </ul>
           </article>
-          <article class="card">
+          <article>
             <h3>Gruppen vor Ort</h3>
             <ul class="contact-list">
               <li>
@@ -200,26 +205,26 @@
         <span class="tag">Alle willkommen</span>
         <h2>So funktioniert parkrun</h2>
         <p class="section-intro">parkrun ist eine kostenlose, gemeinschaftliche 5-Kilometer-Veranstaltung. Du kannst laufen, walken oder als Helferin oder Helfer dabei sein – ohne Zeitvorgabe.</p>
-        <div class="grid">
-          <article class="card">
+        <div class="cards">
+          <article>
             <h3>Jedes Tempo willkommen</h3>
             <p>Ob schnelle Sprinter*innen, entspannte Walker*innen oder Läufer*innen im Mittelfeld, die vor allem die Gemeinschaft genießen: Bei parkrun gibt es keine Pace-Vorgabe. Alle sind willkommen.</p>
           </article>
-          <article class="card">
+          <article>
             <h3>Zum ersten Mal dabei?</h3>
             <p>Für ein offizielles Ergebnis registrierst du dich einmal kostenlos und bringst deinen persönlichen parkrun-Barcode mit. Die Registrierung gilt bei parkrun-Standorten weltweit.</p>
-            <a class="button" href="https://www.parkrun.com.de/register/">Kostenlos registrieren</a>
+            <a role="button" href="https://www.parkrun.com.de/register/">Kostenlos registrieren</a>
           </article>
-          <article class="card">
+          <article>
             <h3>Parkruns in Deutschland</h3>
             <p>In den meisten größeren Städten Deutschlands gibt es einen oder mehrere parkruns. Es macht Spaß, andere Veranstaltungen zu besuchen und dabei neue Strecken und Gemeinschaften kennenzulernen.</p>
             <p><a href="https://parkruns.de" target="_blank" rel="noopener noreferrer">Übersicht aller parkruns in Deutschland – auch geplanter Veranstaltungen</a></p>
           </article>
-          <article class="card">
+          <article>
             <h3>Mithelfen</h3>
             <p>parkrun wird von Freiwilligen organisiert. Es werden ständig Helfer*innen gesucht, die eine der vielen parkrun-Aufgaben übernehmen möchten. Wenn du mithelfen willst, melde dich beim Dietenbach-Team.</p>
           </article>
-          <img class="card" src="../images/helfer.jpg" alt="Das Dietenbach-parkrun-Team mit Helferwesten" loading="lazy" decoding="async">
+          <img class="photo" src="../images/helfer.jpg" alt="Das Dietenbach-parkrun-Team mit Helferwesten" loading="lazy" decoding="async">
         </div>
       </div>
     </section>
@@ -229,8 +234,8 @@
         <h2>Vergangene Veranstaltungen</h2>
         <p class="section-intro">Den Dietenbach parkrun gibt es seit dem 23. Oktober 2021. Hier findest du die Ergebnisse vergangener Veranstaltungen.</p>
         {{if .Events}}
-        <div class="table-scroll">
-          <table class="event-table">
+        <div class="overflow-auto">
+          <table class="striped">
             <thead>
               <tr>
                 <th scope="col">Nr.</th>
@@ -255,9 +260,9 @@
             </tbody>
           </table>
         </div>
-        <p><a class="button" href="events.html">Alle vergangenen Veranstaltungen</a></p>
+        <p><a role="button" href="events.html">Alle vergangenen Veranstaltungen</a></p>
         {{else}}
-        <p class="card">Veranstaltungsdaten sind derzeit nicht verfügbar.</p>
+        <article>Veranstaltungsdaten sind derzeit nicht verfügbar.</article>
         {{end}}
       </div>
     </section>
@@ -267,40 +272,40 @@
         <span class="tag">Nach dem parkrun</span>
         <h2>Gemeinsam einkehren</h2>
         <p class="section-intro">Nach dem parkrun treffen sich Team und Teilnehmende in wechselnden Cafés. Die Auswahl wechselt wöchentlich. Entfernungen ab dem Treffpunkt; im Sommer gibt es am ersten Samstag des Monats stattdessen ein Picknick am Dietenbachsee.</p>
-        <div class="grid">
-          <article class="card">
+        <div class="cards">
+          <article>
             <img class="card-image" src="../images/heitzmann.jpg" alt="Teilnehmende lassen den parkrun gemeinsam in einer Bäckerei ausklingen" loading="lazy" decoding="async">
             <h3>Bäckerei Heitzmann in Weingarten</h3>
-            <p>Ca. 1 km parkrun</p>
+            <p>Ca. 1 km vom parkrun</p>
             <a href="https://maps.app.goo.gl/c7S8rtfrRuoU7L7c7" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/kuechenschelle.jpg" alt="Teilnehmende sitzen nach dem parkrun gemeinsam in der Küchenschelle" loading="lazy" decoding="async">
             <h3>Küchenschelle</h3>
-            <p>Ca. 1 km parkrun</p>
+            <p>Ca. 1 km vom parkrun</p>
             <p><a href="https://www.kuechenschelle-freiburg.de/" target="_blank" rel="noopener noreferrer">Website der Küchenschelle</a></p>
             <a href="https://maps.app.goo.gl/5JnokJAYdZJ72bEC6" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/odessa.jpg" alt="Teilnehmende genießen gemeinsam die Zeit im Café Odessa" loading="lazy" decoding="async">
             <h3>Café Odessa in Weingarten</h3>
-            <p>Ca. 1 km parkrun</p>
+            <p>Ca. 1 km vom parkrun</p>
             <a href="https://maps.app.goo.gl/c8y3nR6RXhmcBne46" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/picknick.jpg" alt="Gemeinsames Picknick am Ufer des Dietenbachsees" loading="lazy" decoding="async">
             <h3>Picknick am Dietenbachsee</h3>
-            <p>Ca. 400 m parkrun<br>Am ersten Samstag im Monat, nur im Sommer.</p>
+            <p>Ca. 400 m vom parkrun<br>Am ersten Samstag im Monat, nur im Sommer.</p>
             <a href="https://maps.app.goo.gl/wQMGQXjujHcAqjpH8" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/kaiser.jpg" alt="Dietenbach-parkrun-Teilnehmende sitzen gemeinsam bei Kaiser’s Gute Backstube" loading="lazy" decoding="async">
             <h3>Kaisers Gute Backstube „artisane“ in Rieselfeld</h3>
-            <p>Ca. 1,5 km parkrun</p>
+            <p>Ca. 1,5 km vom parkrun</p>
             <a href="https://maps.app.goo.gl/PZH73kgdZxMdhUuu7" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a>
           </article>
         </div>
-        <div class="card top-margin" id="cafe-map" aria-label="Karte der Cafés und des Picknickorts">
+        <div class="map" id="cafe-map" aria-label="Karte der Cafés und des Picknickorts">
           <div class="map-fallback">Die Karte mit den Cafés und dem Picknickort wird geladen.</div>
         </div>
       </div>
@@ -312,10 +317,10 @@
         <h2>Im Dietenbachpark</h2>
         <p class="section-intro">Der Park bietet viele Möglichkeiten, sich vor oder nach dem parkrun auszutoben und zu entspannen. Die Karte zeigt die Standorte der Freizeitangebote und weitere wichtige Orte im Park.</p>
         <div class="map-layout">
-          <div class="card" id="park-amenities-map" aria-label="Karte des Dietenbachparks und seiner Freizeitangebote">
+          <div class="map" id="park-amenities-map" aria-label="Karte des Dietenbachparks und seiner Freizeitangebote">
             <div class="map-fallback">Die Karte des Dietenbachparks wird geladen.</div>
           </div>
-          <div class="card">
+          <article>
             <h3>Angebote im Park</h3>
             <ul>
               <li>Toiletten</li>
@@ -331,38 +336,38 @@
               <li>Friedenskreuz</li>
               <li>Parkplatz</li>
             </ul>
-          </div>
+          </article>
         </div>
-        <div class="grid amenity-gallery" aria-label="Fotos von Angeboten im Dietenbachpark">
-          <article class="card">
+        <div class="cards amenity-gallery" aria-label="Fotos von Angeboten im Dietenbachpark">
+          <article>
             <img class="card-image" src="../images/dietenbachsee.jpg" alt="Strand und Liegewiese am Dietenbachsee" loading="lazy" decoding="async">
             <h3>Dietenbachsee-Strand</h3>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/skatepark.jpg" alt="Skatepark mit Rampen und Hindernissen" loading="lazy" decoding="async">
             <h3>Skatepark</h3>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/calesthenics.jpg" alt="Trainingsgeräte im Calisthenics-Park" loading="lazy" decoding="async">
             <h3>Calisthenics-Park</h3>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/volleyball.jpg" alt="Beach-Volleyballfeld im Dietenbachpark" loading="lazy" decoding="async">
             <h3>Beach-Volleyball</h3>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/diskgolf.jpg" alt="Disc-Golf-Korb im Park" loading="lazy" decoding="async">
             <h3>Diskgolf</h3>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/friedenskreuz.jpg" alt="Wegweiser zum Friedenskreuz im Dietenbachpark" loading="lazy" decoding="async">
             <h3>Friedenskreuz</h3>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/parkplatz.jpg" alt="Parkplatz am Rand des Dietenbachparks" loading="lazy" decoding="async">
             <h3>Parkplatz</h3>
           </article>
-          <article class="card">
+          <article>
             <img class="card-image" src="../images/tischtennis.jpg" alt="Tischtennisplatte im Dietenbachpark" loading="lazy" decoding="async">
             <h3>Tischtennis</h3>
           </article>
@@ -372,8 +377,8 @@
   </main>
 
   <footer class="container">
-    <div class="grid footer-grid">
-      <section class="card" aria-labelledby="impressum">
+    <div class="cards footer-grid">
+      <article aria-labelledby="impressum">
         <h2 id="impressum">Impressum</h2>
         <address>
           Florian Pigorsch<br>
@@ -385,18 +390,18 @@
           Telefon: <a href="tel:+4915128942342">015128942342</a><br>
           E-Mail: <a href="mailto:mail@florian-pigorsch.de">mail@florian-pigorsch.de</a>
         </p>
-      </section>
-      <section class="card" aria-labelledby="datenschutz">
+      </article>
+      <article aria-labelledby="datenschutz">
         <h2 id="datenschutz">Datenschutz</h2>
         <p>Diese Website setzt keine Cookies. Ein einfacher Besucherzähler speichert aggregierte Aufrufzahlen für heute, die letzten sieben Tage und insgesamt, ohne einzelne Besuche zuzuordnen.</p>
         <p>Für die Kartenkacheln wird eine Verbindung zu OpenStreetMap hergestellt. Dabei kann unter anderem Ihre IP-Adresse an OpenStreetMap übertragen werden. Weitere Informationen finden Sie in der <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener noreferrer">Datenschutzerklärung der OpenStreetMap Foundation</a>.</p>
         <p>Externe Kartenlinks, etwa zu Google Maps, werden erst geöffnet, wenn Sie sie anklicken. Für die Datenverarbeitung auf den verlinkten Seiten sind deren Anbieter verantwortlich.</p>
-      </section>
-      <section class="card" aria-labelledby="disclaimer">
+      </article>
+      <article aria-labelledby="disclaimer">
         <h2 id="disclaimer">Disclaimer</h2>
         <p>Dies ist eine nicht offizielle Website und steht in keiner Verbindung zu parkrun Global Limited.</p>
         <p>Alle Daten auf dieser Website stammen aus öffentlich zugänglichen Quellen.</p>
-      </section>
+      </article>
     </div>
     <p class="footer-meta">Dietenbach parkrun · Freiburg im Breisgau · <a href="https://www.parkrun.com.de/dietenbach" target="_blank" rel="noopener noreferrer">Offizielle Website</a>
       <br><br>

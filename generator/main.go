@@ -115,6 +115,10 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 	if err != nil {
 		return fmt.Errorf("copy stylesheet: %w", err)
 	}
+	frameworkPath, err := copyFingerprintAsset(sourceDir, outputDir, "pico.min.css")
+	if err != nil {
+		return fmt.Errorf("copy Pico CSS: %w", err)
+	}
 	scriptPath, err := copyFingerprintAsset(sourceDir, outputDir, "main.js")
 	if err != nil {
 		return fmt.Errorf("copy JavaScript: %w", err)
@@ -139,7 +143,7 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 	if err != nil {
 		return err
 	}
-	html = fingerprintAssetReferences(html, stylesheetPath, scriptPath)
+	html = fingerprintAssetReferences(html, frameworkPath, stylesheetPath, scriptPath)
 	if err := os.WriteFile(filepath.Join(outputDir, "index.html"), []byte(html), 0o644); err != nil {
 		return fmt.Errorf("write generated HTML: %w", err)
 	}
@@ -153,7 +157,7 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 	if err != nil {
 		return fmt.Errorf("render events page template: %w", err)
 	}
-	rendered = fingerprintAssetReferences(rendered, stylesheetPath, scriptPath)
+	rendered = fingerprintAssetReferences(rendered, frameworkPath, stylesheetPath, scriptPath)
 	if err := os.WriteFile(filepath.Join(outputDir, "events.html"), []byte(rendered), 0o644); err != nil {
 		return fmt.Errorf("write generated events page: %w", err)
 	}
@@ -186,7 +190,8 @@ func copyFingerprintAsset(sourceDir, outputDir, name string) (string, error) {
 	return fingerprintedName, nil
 }
 
-func fingerprintAssetReferences(html, stylesheetPath, scriptPath string) string {
+func fingerprintAssetReferences(html, frameworkPath, stylesheetPath, scriptPath string) string {
+	html = strings.ReplaceAll(html, `href="pico.min.css"`, `href="`+frameworkPath+`"`)
 	html = strings.ReplaceAll(html, `href="style.css"`, `href="`+stylesheetPath+`"`)
 	html = strings.ReplaceAll(html, `src="main.js"`, `src="`+scriptPath+`"`)
 	return html
