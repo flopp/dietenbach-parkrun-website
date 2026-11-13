@@ -30,6 +30,7 @@
                 <th scope="col">Nr.</th>
                 <th scope="col">Datum</th>
                 <th scope="col">Special</th>
+                <th scope="col">Café</th>
                 <th scope="col">Teilnehmer</th>
                 <th scope="col">Ergebnisse</th>
                 <th scope="col">Bericht</th>
@@ -42,6 +43,7 @@
                 <td>{{.Index}}</td>
                 <td>{{.Date}}</td>
                 <td>{{.Special}}</td>
+                <td>{{.Cafe}}</td>
                 <td>{{.Runners}}</td>
                 <td>{{if .ResultsURL}}<a href="{{.ResultsURL}}">Ergebnisse</a>{{end}}</td>
                 <td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td>

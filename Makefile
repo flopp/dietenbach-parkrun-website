@@ -10,6 +10,8 @@ serve:
 	python3 -m webbrowser -t http://127.0.0.1:8000/; \
 	wait "$$server_pid"
 
+test:
+	cd generator ; go test ./...
 
 upload: generate
 	@rsync \

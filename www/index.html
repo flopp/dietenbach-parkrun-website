@@ -226,7 +226,6 @@
 
     <section id="veranstaltungen">
       <div class="container">
-        <span class="tag">Rückblicke</span>
         <h2>Vergangene Veranstaltungen</h2>
         <p class="section-intro">Den Dietenbach parkrun gibt es seit dem 23. Oktober 2021. Hier findest du die Ergebnisse vergangener Veranstaltungen.</p>
         {{if .Events}}
@@ -248,7 +247,7 @@
                 <td>{{.Index}}</td>
                 <td>{{.Date}}</td>
                 <td>{{.Runners}}</td>
-                <td><a href="{{.ResultsURL}}">Ergebnisse</a></td>
+                <td>{{if .ResultsURL}}<a href="{{.ResultsURL}}">Ergebnisse</a>{{end}}</td>
                 <td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td>
                 <td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td>
               </tr>

@@ -18,6 +18,78 @@ import (
 	"time"
 )
 
+func TestCafeIsDisplayedOnEventsPage(t *testing.T) {
+	events, _, err := prepareEvents(sheetData{
+		Headers: []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS", "CAFE"},
+		Rows:    [][]string{{"42", "2026-11-07", "", "27", "", "", "", "", "Küchenschelle"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	template, err := os.ReadFile(filepath.Join("..", "www", "events.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html, err := renderTemplate(string(template), pageData{Events: events})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html, "<th scope=\"col\">Café</th>") || !strings.Contains(html, "<td>Küchenschelle</td>") {
+		t.Errorf("events page does not display the cafe column: %s", html)
+	}
+}
+
+func TestResultsURLRequiresNumericIndexAndNonFutureDate(t *testing.T) {
+	futureDate := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+	events, latest, err := prepareEvents(sheetData{
+		Headers: []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS"},
+		Rows: [][]string{
+			{"42", "2000-10-11", "", "11", "", "", "", ""},
+			{"not numeric", "2000-10-12", "", "12", "", "", "", ""},
+			{"43", futureDate, "", "13", "", "", "", ""},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range []struct {
+		event event
+		want  string
+	}{
+		{events[0], "https://www.parkrun.com.de/dietenbach/results/42/"},
+		{events[1], ""},
+		{events[2], ""},
+	} {
+		if test.event.ResultsURL != test.want {
+			t.Errorf("event %q on %q ResultsURL = %q, want %q", test.event.Index, test.event.Date, test.event.ResultsURL, test.want)
+		}
+	}
+	for _, event := range latest {
+		if (event.Index == "not numeric" || event.Index == "43") && event.ResultsURL != "" {
+			t.Errorf("latest event %q on %q has ResultsURL %q, want empty", event.Index, event.Date, event.ResultsURL)
+		}
+	}
+
+	for _, name := range []string{"events.html", "index.html"} {
+		template, err := os.ReadFile(filepath.Join("..", "www", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		html, err := renderTemplate(string(template), pageData{Events: events, LatestEvents: latest})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Count(html, `<a href="https://www.parkrun.com.de/dietenbach/results/`); got != 1 {
+			t.Errorf("%s contains %d results links, want only the valid past event", name, got)
+		}
+		if strings.Contains(html, `<a href="">Ergebnisse</a>`) {
+			t.Errorf("%s displays an empty results link", name)
+		}
+	}
+}
+
 func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	root := t.TempDir()
 	sourceDir := filepath.Join(root, "www")
@@ -34,7 +106,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(sourceDir, "index.html"), []byte(template), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	eventsTemplate := `<link rel="stylesheet" href="style.css"><table><thead><tr><th>Nr.</th><th>Datum</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .Events}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>`
+	eventsTemplate := `<link rel="stylesheet" href="style.css"><table><thead><tr><th>Nr.</th><th>Datum</th><th>Special</th><th>Café</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .Events}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Special}}</td><td>{{.Cafe}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>`
 	if err := os.WriteFile(filepath.Join(sourceDir, "events.html"), []byte(eventsTemplate), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +135,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 		if r.URL.Query().Has("key") {
 			t.Error("API key should not be included in the request URL")
 		}
-		fmt.Fprint(w, `{"values":[["INDEX","DATE","RUNNERS","RESULTS","REPORT","AUTHOR","PHOTOS"],["1","2000-10-11","11","","","",""],["2","2000-10-12","12","","","",""],["3","2000-10-13","13","","","",""],["4","2000-10-14","14","","","",""],["5","2000-10-15","15","","","",""],["6","2000-10-16","<script>alert(1)</script>","","https://example.com/report","Author <script>","https://photos.google.com/album"],["7","2000-10-17","17","","","",""],["8","2999-10-17","18","","","",""],["","2000-10-16","5","","","",""],["not numeric","2000-10-16","35","","","",""]]}`)
+		fmt.Fprint(w, `{"values":[["INDEX","DATE","SPECIAL","RUNNERS","RESULTS","REPORT","AUTHOR","PHOTOS","CAFE"],["1","2000-10-11","","11","","","","",""],["2","2000-10-12","","12","","","","",""],["3","2000-10-13","","13","","","","",""],["4","2000-10-14","","14","","","","",""],["5","2000-10-15","","15","","","","",""],["6","2000-10-16","","<script>alert(1)</script>","","https://example.com/report","Author <script>","https://photos.google.com/album","Küchenschelle"],["7","2000-10-17","","17","","","","",""],["8","2999-10-17","","18","","","","",""],["","2000-10-16","","5","","","","",""],["not numeric","2000-10-16","","35","","","","",""]]}`)
 	}))
 	defer server.Close()
 
@@ -121,6 +193,9 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	}
 	if !strings.Contains(string(allEventsHTML), "<td>11</td>") || !strings.Contains(string(allEventsHTML), "<td>17</td>") {
 		t.Errorf("all-events page does not include the full event range: %s", allEventsHTML)
+	}
+	if !strings.Contains(string(allEventsHTML), "<th>Café</th>") || !strings.Contains(string(allEventsHTML), "<td>Küchenschelle</td>") {
+		t.Errorf("all-events page does not display the cafe column: %s", allEventsHTML)
 	}
 	if !strings.Contains(string(allEventsHTML), `href="`+stylesheetPath+`"`) {
 		t.Errorf("all-events page does not reference the fingerprinted stylesheet: %s", allEventsHTML)
