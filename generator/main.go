@@ -162,7 +162,7 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 		return fmt.Errorf("write generated events page: %w", err)
 	}
 
-	for _, name := range []string{"course.geojson", "counter.php"} {
+	for _, name := range []string{"course.geojson", "counter.php", ".htaccess"} {
 		if err := copyFile(filepath.Join(sourceDir, name), filepath.Join(outputDir, name)); err != nil {
 			return fmt.Errorf("copy site asset %q: %w", name, err)
 		}

@@ -113,7 +113,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(`{"google":{"api_key":"test-key","sheet_id":"test-sheet"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"style.css", "pico.min.css", "main.js", "course.geojson", "counter.php"} {
+	for _, name := range []string{"style.css", "pico.min.css", "main.js", "course.geojson", "counter.php", ".htaccess"} {
 		if err := os.WriteFile(filepath.Join(sourceDir, name), []byte(name), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -221,7 +221,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(outputDir, "img", "unused.jpg")); !os.IsNotExist(err) {
 		t.Errorf("unreferenced image should not be copied, stat error = %v", err)
 	}
-	for _, name := range []string{"course.geojson"} {
+	for _, name := range []string{"course.geojson", ".htaccess"} {
 		content, err := os.ReadFile(filepath.Join(outputDir, name))
 		if err != nil {
 			t.Errorf("asset %s was not copied: %v", name, err)
