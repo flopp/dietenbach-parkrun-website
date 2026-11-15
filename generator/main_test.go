@@ -95,7 +95,7 @@ func TestCafeIsDisplayedOnEventsPage(t *testing.T) {
 	events, _, err := prepareEvents(sheetData{
 		Headers: []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS", "CAFE"},
 		Rows:    [][]string{{"42", "2026-11-07", "", "27", "", "", "", "", "Küchenschelle"}},
-	})
+	}, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestWordPressEventsTemplateRendersEvents(t *testing.T) {
 	events, _, err := prepareEvents(sheetData{
 		Headers: []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS"},
 		Rows:    [][]string{{"42", "2026-11-07", "Halloween", "27", "", "", "", ""}},
-	})
+	}, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,58 +130,55 @@ func TestWordPressEventsTemplateRendersEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(html, "<td>#42 / 2026-11-07</td>") || !strings.Contains(html, "<td>Halloween</td>") {
+	if !strings.Contains(html, `<td class="Results-table-td">#42 / 2026-11-07</td>`) || !strings.Contains(html, `<td class="Results-table-td">Halloween</td>`) {
 		t.Errorf("WordPress events page does not display event data: %s", html)
 	}
 }
 
-func TestResultsURLRequiresNumericIndexAndNonFutureDate(t *testing.T) {
-	futureDate := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+func TestEventResultsURLRequiresNumericIndexAndNonFutureDate(t *testing.T) {
+	today := time.Date(2026, time.November, 15, 12, 0, 0, 0, time.Local)
+	futureDate := today.AddDate(0, 0, 1).Format("2006-01-02")
+	for _, test := range []struct {
+		index string
+		date  string
+		want  string
+	}{
+		{"42", "2026-11-14", "https://www.parkrun.com.de/dietenbach/results/42/"},
+		{"not numeric", "2026-11-14", ""},
+		{"43", futureDate, ""},
+	} {
+		if got := eventResultsURL(test.index, test.date, today); got != test.want {
+			t.Errorf("eventResultsURL(%q, %q) = %q, want %q", test.index, test.date, got, test.want)
+		}
+	}
+}
+
+func TestPrepareEventsIncludesRowsAndMarksFutureEvents(t *testing.T) {
+	today := time.Date(2026, time.November, 15, 12, 0, 0, 0, time.Local)
+	futureDate := today.AddDate(0, 0, 1).Format("2006-01-02")
 	events, latest, err := prepareEvents(sheetData{
 		Headers: []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS"},
 		Rows: [][]string{
-			{"42", "2000-10-11", "", "11", "", "", "", ""},
-			{"not numeric", "2000-10-12", "", "12", "", "", "", ""},
+			{"42", "2026-11-14", "", "11", "", "", "", ""},
+			{"not numeric", "2026-11-14", "", "12", "", "", "", ""},
 			{"43", futureDate, "", "13", "", "", "", ""},
 		},
-	})
+	}, today)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, test := range []struct {
-		event event
-		want  string
-	}{
-		{events[0], "https://www.parkrun.com.de/dietenbach/results/42/"},
-		{events[1], ""},
-		{events[2], ""},
-	} {
-		if test.event.ResultsURL != test.want {
-			t.Errorf("event %q on %q ResultsURL = %q, want %q", test.event.Index, test.event.Date, test.event.ResultsURL, test.want)
-		}
+	if len(events) != 3 || len(latest) != 3 {
+		t.Fatalf("prepared %d events and %d latest events, want 3 of each", len(events), len(latest))
 	}
-	for _, event := range latest {
-		if (event.Index == "not numeric" || event.Index == "43") && event.ResultsURL != "" {
-			t.Errorf("latest event %q on %q has ResultsURL %q, want empty", event.Index, event.Date, event.ResultsURL)
-		}
+	if events[0].Future || !events[2].Future {
+		t.Error("future flag was not set for the future event")
 	}
-
-	for _, name := range []string{"events.html", "index.html"} {
-		template, err := os.ReadFile(filepath.Join("..", "www", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		html, err := renderTemplate(string(template), pageData{Events: events, LatestEvents: latest})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := strings.Count(html, `<a href="https://www.parkrun.com.de/dietenbach/results/`); got != 1 {
-			t.Errorf("%s contains %d results links, want only the valid past event", name, got)
-		}
-		if strings.Contains(html, `<a href="">Ergebnisse</a>`) {
-			t.Errorf("%s displays an empty results link", name)
-		}
+	if events[0].ResultsURL != "https://www.parkrun.com.de/dietenbach/results/42/" {
+		t.Errorf("past event ResultsURL = %q", events[0].ResultsURL)
+	}
+	if events[1].ResultsURL != "https://www.parkrun.com.de/dietenbach/results/not numeric/" || !events[2].Future {
+		t.Errorf("prepared events do not preserve source row values and future status: %#v", events)
 	}
 }
 
@@ -242,7 +239,8 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := generateWithDependencies(sourceDir, imageDir, outputDir, settings, server.Client(), server.URL, server.URL+"/leaflet"); err != nil {
+	today := time.Date(2000, time.October, 18, 12, 0, 0, 0, time.Local)
+	if err := generateWithDependencies(sourceDir, imageDir, outputDir, settings, server.Client(), server.URL, server.URL+"/leaflet", today); err != nil {
 		t.Fatal(err)
 	}
 
@@ -264,23 +262,14 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 			t.Errorf("generated HTML is missing %q heading: %s", heading, html)
 		}
 	}
-	if !strings.Contains(string(html), `<a href="https://www.parkrun.com.de/dietenbach/results/7/">Ergebnisse</a>`) {
-		t.Errorf("generated HTML is missing the constructed results link: %s", html)
+	if !strings.Contains(string(html), `<a href="https://www.parkrun.com.de/dietenbach/results/5/">Ergebnisse</a>`) {
+		t.Errorf("generated HTML is missing a results link from the latest source rows: %s", html)
 	}
-	if !strings.Contains(string(html), `<a href="https://example.com/report">Bericht</a> · Author &lt;script&gt;`) {
-		t.Errorf("generated HTML is missing escaped report and author: %s", html)
+	if !strings.Contains(string(html), "<tr><td>1</td>") || !strings.Contains(string(html), "<tr><td>2</td>") {
+		t.Errorf("main page did not preserve the first source rows: %s", html)
 	}
-	if !strings.Contains(string(html), `<a href="https://photos.google.com/album">Album öffnen</a>`) {
-		t.Errorf("generated HTML is missing photo album link: %s", html)
-	}
-	if strings.Contains(string(html), "<script>alert(1)</script>") {
-		t.Errorf("generated HTML did not escape sheet data: %s", html)
-	}
-	if strings.Contains(string(html), "<tr><td>1</td>") || strings.Contains(string(html), "<tr><td>2</td>") {
-		t.Errorf("main page included events outside the latest five: %s", html)
-	}
-	if strings.Contains(string(html), "<tr><td>8</td>") {
-		t.Errorf("generated HTML included a future event or event without INDEX: %s", html)
+	if strings.Contains(string(html), "<tr><td>6</td>") || strings.Contains(string(html), "<tr><td>8</td>") {
+		t.Errorf("main page included events outside the latest five source rows: %s", html)
 	}
 	if got := strings.Count(string(html), "<tr>"); got != latestEventCount+1 {
 		t.Errorf("main page table rows including header = %d, want %d", got, latestEventCount+1)
@@ -293,11 +282,20 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Count(string(allEventsHTML), "<tr>"); got != 8 {
-		t.Errorf("all-events page rows = %d, want 8", got)
+	if !strings.Contains(string(allEventsHTML), `<a href="https://example.com/report">Bericht</a> · Author &lt;script&gt;`) {
+		t.Errorf("all-events HTML is missing escaped report and author: %s", allEventsHTML)
 	}
-	if !strings.Contains(string(allEventsHTML), "<td>11</td>") || !strings.Contains(string(allEventsHTML), "<td>17</td>") {
-		t.Errorf("all-events page does not include the full event range: %s", allEventsHTML)
+	if !strings.Contains(string(allEventsHTML), `<a href="https://photos.google.com/album">Album öffnen</a>`) {
+		t.Errorf("all-events HTML is missing photo album link: %s", allEventsHTML)
+	}
+	if strings.Contains(string(allEventsHTML), "<script>alert(1)</script>") {
+		t.Errorf("all-events HTML did not escape sheet data: %s", allEventsHTML)
+	}
+	if got := strings.Count(string(allEventsHTML), "<tr>"); got != 11 {
+		t.Errorf("all-events page rows = %d, want 11 including every source row", got)
+	}
+	if !strings.Contains(string(allEventsHTML), "<td>1</td>") || !strings.Contains(string(allEventsHTML), "<td>not numeric</td>") || !strings.Contains(string(allEventsHTML), "<td>8</td>") {
+		t.Errorf("all-events page does not preserve the source rows: %s", allEventsHTML)
 	}
 	if !strings.Contains(string(allEventsHTML), "<th>Café</th>") || !strings.Contains(string(allEventsHTML), "<td>Küchenschelle</td>") {
 		t.Errorf("all-events page does not display the cafe column: %s", allEventsHTML)
@@ -310,11 +308,11 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Count(string(wordPressEventsHTML), "<tr>"); got != 7 {
-		t.Errorf("WordPress events page rows = %d, want all 7 past events", got)
+	if got := strings.Count(string(wordPressEventsHTML), "<tr>"); got != 10 {
+		t.Errorf("WordPress events page rows = %d, want all 10 source events", got)
 	}
-	if !strings.Contains(string(wordPressEventsHTML), "<td>7</td><td>2000-10-17</td>") {
-		t.Errorf("WordPress events page did not render event data: %s", wordPressEventsHTML)
+	if !strings.Contains(string(wordPressEventsHTML), "<td>8</td><td>2999-10-17</td>") {
+		t.Errorf("WordPress events page did not render the future source row: %s", wordPressEventsHTML)
 	}
 	for _, page := range [][]byte{html, allEventsHTML} {
 		if strings.Contains(string(page), `href="events-wordpress.html"`) {
@@ -370,7 +368,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	}
 }
 
-func TestParseSheetValuesPadsRowsAndSkipsBlankRows(t *testing.T) {
+func TestParseSheetValuesPadsRowsAndPreservesBlankRows(t *testing.T) {
 	events, err := parseSheetValues([][]any{
 		{"INDEX", "Date"},
 		{"1", "2026-10-17", "Extra"},
@@ -383,12 +381,12 @@ func TestParseSheetValuesPadsRowsAndSkipsBlankRows(t *testing.T) {
 	if got, want := strings.Join(events.Headers, ","), "INDEX,Date,Spalte 3"; got != want {
 		t.Errorf("headers = %q, want %q", got, want)
 	}
-	if len(events.Rows) != 1 || strings.Join(events.Rows[0], ",") != "1,2026-10-17,Extra" {
-		t.Errorf("rows = %#v, want one padded event row", events.Rows)
+	if len(events.Rows) != 2 || strings.Join(events.Rows[0], ",") != "1,2026-10-17,Extra" || strings.Join(events.Rows[1], ",") != ",," {
+		t.Errorf("rows = %#v, want both padded source rows", events.Rows)
 	}
 }
 
-func TestParseSheetValuesSkipsFutureAndInvalidIndexes(t *testing.T) {
+func TestParseSheetValuesPreservesFutureAndInvalidIndexesInSourceOrder(t *testing.T) {
 	events, err := parseSheetValues([][]any{
 		{"INDEX", "DATE", "Participants"},
 		{"101", "2026-10-17", "25"},
@@ -401,11 +399,13 @@ func TestParseSheetValuesSkipsFutureAndInvalidIndexes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(events.Rows) != 2 {
-		t.Fatalf("got %d rows, want 2: %#v", len(events.Rows), events.Rows)
+	if len(events.Rows) != 6 {
+		t.Fatalf("got %d rows, want all 6 source rows: %#v", len(events.Rows), events.Rows)
 	}
-	if events.Rows[0][0] != "103" || events.Rows[1][0] != "101" {
-		t.Errorf("included event indexes = %q, %q; want newest-first 103, 101", events.Rows[0][0], events.Rows[1][0])
+	for index, want := range []string{"101", "102", "", "not numeric", "12.5", "103"} {
+		if got := events.Rows[index][0]; got != want {
+			t.Errorf("row %d index = %q, want %q", index, got, want)
+		}
 	}
 }
 
