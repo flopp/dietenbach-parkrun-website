@@ -15,7 +15,7 @@ Wir aktualisieren die Seite wöchentlich.
     </thead>
     <tbody>{{range .Events}}
         <tr>
-            <td class="Results-table-td">{{if .Index}}#{{.Index}} / {{end}}{{.Date}}</td>
+            <td class="Results-table-td">{{if .Index}}#{{.Index}} / {{end}}{{.Date}}{{if .Future}}<br>(zukünftig){{end}}</td>
             <td class="Results-table-td">{{.Special}}</td>
             <td class="Results-table-td">
                 {{if .ResultsURL}}<div class="Results-table--green"><a href="{{.ResultsURL}}">Ergebnisse</a></div>{{end}}

@@ -19,7 +19,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -77,6 +76,7 @@ type event struct {
 	ReportURL    string
 	ReportAuthor string
 	PhotosURL    string
+	Future       bool
 }
 
 func (e *event) IndexDate() string {
@@ -84,6 +84,7 @@ func (e *event) IndexDate() string {
 }
 
 type pageData struct {
+	Updated      string
 	Events       []event
 	LatestEvents []event
 }
@@ -103,7 +104,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := generate(*sourceDir, *imageDir, *outputDir, settings); err != nil {
+	today := time.Now()
+
+	if err := generate(*sourceDir, *imageDir, *outputDir, settings, today); err != nil {
 		fmt.Fprintln(os.Stderr, "site generation failed:", err)
 		os.Exit(1)
 	}
@@ -116,12 +119,12 @@ func main() {
 	}
 }
 
-func generate(sourceDir, imageDir, outputDir string, settings config) error {
+func generate(sourceDir, imageDir, outputDir string, settings config, today time.Time) error {
 	client := &http.Client{Timeout: 30 * time.Second}
-	return generateWithDependencies(sourceDir, imageDir, outputDir, settings, client, sheetsAPIURL, leafletAssetsBaseURL)
+	return generateWithDependencies(sourceDir, imageDir, outputDir, settings, client, sheetsAPIURL, leafletAssetsBaseURL, today)
 }
 
-func generateWithDependencies(sourceDir, imageDir, outputDir string, settings config, client *http.Client, apiURL, leafletBaseURL string) error {
+func generateWithDependencies(sourceDir, imageDir, outputDir string, settings config, client *http.Client, apiURL, leafletBaseURL string, today time.Time) error {
 	events, err := fetchEvents(context.Background(), client, apiURL, settings)
 	if err != nil {
 		return err
@@ -150,11 +153,11 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return fmt.Errorf("read HTML template %q: %w", templatePath, err)
 	}
 
-	displayEvents, latestEvents, err := prepareEvents(events)
+	displayEvents, latestEvents, err := prepareEvents(events, today)
 	if err != nil {
 		return err
 	}
-	data := pageData{Events: displayEvents, LatestEvents: latestEvents}
+	data := pageData{Updated: today.Format("15:04 02.01.2006"), Events: displayEvents, LatestEvents: latestEvents}
 	rendered, err := renderTemplate(string(templateContent), data)
 	if err != nil {
 		return fmt.Errorf("render HTML template: %w", err)
@@ -343,40 +346,20 @@ func parseSheetValues(values [][]any, today time.Time) (sheetData, error) {
 		return sheetData{}, fmt.Errorf("missing date column")
 	}
 
-	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
-	type eventRow struct {
-		values []string
-		date   time.Time
-	}
-	eventRows := make([]eventRow, 0, len(values)-1)
+	eventRows := make([][]string, 0, len(values)-1)
 	for _, sourceRow := range values[1:] {
 		row := make([]string, columnCount)
 		for column, value := range sourceRow {
 			row[column] = sheetCell(value)
 		}
-		index := strings.TrimSpace(row[indexColumn])
-		if _, err := strconv.Atoi(index); err != nil {
-			continue
-		}
 
-		date, err := parseEventDate(strings.TrimSpace(row[dateColumn]), today.Location())
-		if err == nil && date.After(today) {
-			continue
-		}
-		eventRows = append(eventRows, eventRow{values: row, date: date})
+		eventRows = append(eventRows, row)
 	}
 
-	sort.SliceStable(eventRows, func(i, j int) bool {
-		return eventRows[i].date.After(eventRows[j].date)
-	})
-	rows := make([][]string, 0, len(eventRows))
-	for _, row := range eventRows {
-		rows = append(rows, row.values)
-	}
-	return sheetData{Headers: headers, Rows: rows}, nil
+	return sheetData{Headers: headers, Rows: eventRows}, nil
 }
 
-func prepareEvents(data sheetData) ([]event, []event, error) {
+func prepareEvents(data sheetData, today time.Time) ([]event, []event, error) {
 	columns := map[string]int{}
 	for _, name := range []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS"} {
 		index := findColumn(data.Headers, name)
@@ -386,6 +369,8 @@ func prepareEvents(data sheetData) ([]event, []event, error) {
 		columns[name] = index
 	}
 	cafeColumn := findColumn(data.Headers, "CAFE")
+
+	todayStart := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
 
 	events := make([]event, 0, len(data.Rows))
 	latest := make([]event, 0, latestEventCount)
@@ -405,7 +390,18 @@ func prepareEvents(data sheetData) ([]event, []event, error) {
 		report := cell("REPORT")
 		author := cell("AUTHOR")
 		photos := cell("PHOTOS")
-		resultsURL := eventResultsURL(index, date)
+
+		future := false
+		if eventDate, err := parseEventDate(date, time.Local); err == nil {
+			if eventDate.After(todayStart) {
+				future = true
+			}
+		}
+
+		resultsURL := ""
+		if runners != "" {
+			resultsURL = "https://www.parkrun.com.de/dietenbach/results/" + index + "/"
+		}
 
 		if runners != "" && len(latest) < latestEventCount {
 			latest = append(latest, event{
@@ -418,6 +414,7 @@ func prepareEvents(data sheetData) ([]event, []event, error) {
 				ReportURL:    report,
 				ReportAuthor: author,
 				PhotosURL:    photos,
+				Future:       future,
 			})
 		}
 		events = append(events, event{
@@ -430,19 +427,18 @@ func prepareEvents(data sheetData) ([]event, []event, error) {
 			ReportURL:    report,
 			ReportAuthor: author,
 			PhotosURL:    photos,
+			Future:       future,
 		})
 	}
 	return events, latest, nil
 }
 
-func eventResultsURL(index, date string) string {
+func eventResultsURL(index, date string, today time.Time) string {
 	if _, err := strconv.Atoi(index); err != nil {
 		return ""
 	}
 
 	if eventDate, err := parseEventDate(date, time.Local); err == nil {
-		today := time.Now()
-		today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
 		if eventDate.After(today) {
 			return ""
 		}

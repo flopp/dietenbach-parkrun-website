@@ -45,7 +45,7 @@
             {{range .Events}}
             <tr>
               <td>{{.Index}}</td>
-              <td>{{.Date}}</td>
+              <td>{{.Date}}{{if .Future}}<br>(zukünftig){{end}}</td>
               <td>{{.Special}}</td>
               <td>{{.Cafe}}</td>
               <td>{{.Runners}}</td>
@@ -62,5 +62,40 @@
       {{end}}
     </section>
   </main>
+
+  <footer class="container">
+    <div class="cards footer-grid">
+      <article aria-labelledby="impressum">
+        <h2 id="impressum">Impressum</h2>
+        <address>
+          Florian Pigorsch<br>
+          Freiladestraße 6<br>
+          79108 Freiburg
+        </address>
+        <h3>Kontakt</h3>
+        <p>
+          Telefon: <a href="tel:+4915128942342">015128942342</a><br>
+          E-Mail: <a href="mailto:mail@florian-pigorsch.de">mail@florian-pigorsch.de</a>
+        </p>
+      </article>
+      <article aria-labelledby="datenschutz">
+        <h2 id="datenschutz">Datenschutz</h2>
+        <p>Diese Website setzt keine Cookies. Ein einfacher Besucherzähler speichert aggregierte Aufrufzahlen für heute, die letzten sieben Tage und insgesamt, ohne einzelne Besuche zuzuordnen.</p>
+        <p>Für die Kartenkacheln wird eine Verbindung zu OpenStreetMap hergestellt. Dabei kann unter anderem Ihre IP-Adresse an OpenStreetMap übertragen werden. Weitere Informationen finden Sie in der <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener noreferrer">Datenschutzerklärung der OpenStreetMap Foundation</a>.</p>
+        <p>Externe Kartenlinks, etwa zu Google Maps, werden erst geöffnet, wenn Sie sie anklicken. Für die Datenverarbeitung auf den verlinkten Seiten sind deren Anbieter verantwortlich.</p>
+      </article>
+      <article aria-labelledby="disclaimer">
+        <h2 id="disclaimer">Disclaimer</h2>
+        <p>Dies ist eine nicht offizielle Website und steht in keiner Verbindung zu parkrun Global Limited.</p>
+        <p>Alle Daten auf dieser Website stammen aus öffentlich zugänglichen Quellen.</p>
+      </article>
+    </div>
+    <p class="footer-meta">Dietenbach parkrun · Freiburg im Breisgau · <a href="https://www.parkrun.com.de/dietenbach" target="_blank" rel="noopener noreferrer">Offizielle Website</a>
+      <br><br>
+      Besuche: insgesamt <span id="visitor-count-total">-</span> · letzte 7 Tage <span class="visitor-count-history">-</span>
+      <br>
+      Aktualisiert: <span>{{.Updated}}</span>
+    </p>
+  </footer>
 </body>
 </html>
