@@ -138,9 +138,9 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 	if err != nil {
 		return fmt.Errorf("copy stylesheet: %w", err)
 	}
-	frameworkPath, err := copyFingerprintAsset(sourceDir, outputDir, "pico.min.css")
+	frameworkPath, err := copyFingerprintAsset(sourceDir, outputDir, "blades.min.css")
 	if err != nil {
-		return fmt.Errorf("copy Pico CSS: %w", err)
+		return fmt.Errorf("copy Blades CSS: %w", err)
 	}
 	scriptPath, err := copyFingerprintAsset(sourceDir, outputDir, "main.js")
 	if err != nil {
@@ -198,7 +198,7 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return fmt.Errorf("write generated WordPress events page: %w", err)
 	}
 
-	for _, name := range []string{"course.geojson", "counter.php", ".htaccess"} {
+	for _, name := range []string{"course.geojson", "counter.php", ".htaccess", "blades.LICENSE.md", "pico.LICENSE.md"} {
 		if err := copyFile(filepath.Join(sourceDir, name), filepath.Join(outputDir, name)); err != nil {
 			return fmt.Errorf("copy site asset %q: %w", name, err)
 		}
@@ -227,7 +227,7 @@ func copyFingerprintAsset(sourceDir, outputDir, name string) (string, error) {
 }
 
 func fingerprintAssetReferences(html, frameworkPath, stylesheetPath, scriptPath string) string {
-	html = strings.ReplaceAll(html, `href="pico.min.css"`, `href="`+frameworkPath+`"`)
+	html = strings.ReplaceAll(html, `href="blades.min.css"`, `href="`+frameworkPath+`"`)
 	html = strings.ReplaceAll(html, `href="style.css"`, `href="`+stylesheetPath+`"`)
 	html = strings.ReplaceAll(html, `src="main.js"`, `src="`+scriptPath+`"`)
 	return html

@@ -182,6 +182,31 @@ func TestPrepareEventsIncludesRowsAndMarksFutureEvents(t *testing.T) {
 	}
 }
 
+func TestSiteTemplatesReferenceFingerprintedBlades(t *testing.T) {
+	sourceDir := filepath.Join("..", "www")
+	outputDir := t.TempDir()
+	frameworkPath, err := copyFingerprintAsset(sourceDir, outputDir, "blades.min.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, name := range []string{"index.html", "events.html"} {
+		t.Run(name, func(t *testing.T) {
+			source, err := os.ReadFile(filepath.Join(sourceDir, name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(source), `href="blades.min.css"`) {
+				t.Fatalf("%s does not reference the Blades stylesheet", name)
+			}
+			html := fingerprintAssetReferences(string(source), frameworkPath, "style.test.css", "main.test.js")
+			if !strings.Contains(html, `href="`+frameworkPath+`"`) || strings.Contains(html, `href="blades.min.css"`) {
+				t.Errorf("%s does not reference the fingerprinted Blades stylesheet", name)
+			}
+		})
+	}
+}
+
 func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	root := t.TempDir()
 	sourceDir := filepath.Join(root, "www")
@@ -194,11 +219,11 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 		}
 	}
 
-	template := `<link rel="stylesheet" href="pico.min.css"><link rel="stylesheet" href="style.css"><img src="../images/park.jpg"><script src="main.js"></script>{{if .Events}}<table><thead><tr><th>Nr.</th><th>Datum</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .LatestEvents}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>{{end}}<a href="events.html">All events</a>`
+	template := `<link rel="stylesheet" href="blades.min.css"><link rel="stylesheet" href="style.css"><img src="../images/park.jpg"><script src="main.js"></script>{{if .Events}}<table><thead><tr><th>Nr.</th><th>Datum</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .LatestEvents}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>{{end}}<a href="events.html">All events</a>`
 	if err := os.WriteFile(filepath.Join(sourceDir, "index.html"), []byte(template), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	eventsTemplate := `<link rel="stylesheet" href="pico.min.css"><link rel="stylesheet" href="style.css"><table><thead><tr><th>Nr.</th><th>Datum</th><th>Special</th><th>Café</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .Events}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Special}}</td><td>{{.Cafe}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>`
+	eventsTemplate := `<link rel="stylesheet" href="blades.min.css"><link rel="stylesheet" href="style.css"><table><thead><tr><th>Nr.</th><th>Datum</th><th>Special</th><th>Café</th><th>Teilnehmer</th><th>Ergebnisse</th><th>Bericht</th><th>Fotos</th></tr></thead><tbody>{{range .Events}}<tr><td>{{.Index}}</td><td>{{.Date}}</td><td>{{.Special}}</td><td>{{.Cafe}}</td><td>{{.Runners}}</td><td><a href="{{.ResultsURL}}">Ergebnisse</a></td><td>{{if .ReportURL}}<a href="{{.ReportURL}}">Bericht</a>{{end}}{{if .ReportAuthor}} · {{.ReportAuthor}}{{end}}</td><td>{{if .PhotosURL}}<a href="{{.PhotosURL}}">Album öffnen</a>{{end}}</td></tr>{{end}}</tbody></table>`
 	if err := os.WriteFile(filepath.Join(sourceDir, "events.html"), []byte(eventsTemplate), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +234,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(`{"google":{"api_key":"test-key","sheet_id":"test-sheet"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"style.css", "pico.min.css", "main.js", "course.geojson", "counter.php", ".htaccess"} {
+	for _, name := range []string{"style.css", "blades.min.css", "main.js", "course.geojson", "counter.php", ".htaccess", "blades.LICENSE.md", "pico.LICENSE.md"} {
 		if err := os.WriteFile(filepath.Join(sourceDir, name), []byte(name), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -249,12 +274,12 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 		t.Fatal(err)
 	}
 	styleChecksum := sha256.Sum256([]byte("style.css"))
-	picoChecksum := sha256.Sum256([]byte("pico.min.css"))
+	bladesChecksum := sha256.Sum256([]byte("blades.min.css"))
 	scriptChecksum := sha256.Sum256([]byte("main.js"))
 	stylesheetPath := "style." + hex.EncodeToString(styleChecksum[:]) + ".css"
-	picoPath := "pico.min." + hex.EncodeToString(picoChecksum[:]) + ".css"
+	bladesPath := "blades.min." + hex.EncodeToString(bladesChecksum[:]) + ".css"
 	scriptPath := "main." + hex.EncodeToString(scriptChecksum[:]) + ".js"
-	if !strings.Contains(string(html), `<link rel="stylesheet" href="`+picoPath+`"><link rel="stylesheet" href="`+stylesheetPath+`"><img src="img/park.jpg"><script src="`+scriptPath+`"></script>`) {
+	if !strings.Contains(string(html), `<link rel="stylesheet" href="`+bladesPath+`"><link rel="stylesheet" href="`+stylesheetPath+`"><img src="img/park.jpg"><script src="`+scriptPath+`"></script>`) {
 		t.Fatalf("generated HTML did not rewrite image path: %s", html)
 	}
 	for _, heading := range []string{"Nr.", "Datum", "Teilnehmer", "Ergebnisse", "Bericht", "Fotos"} {
@@ -300,7 +325,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if !strings.Contains(string(allEventsHTML), "<th>Café</th>") || !strings.Contains(string(allEventsHTML), "<td>Küchenschelle</td>") {
 		t.Errorf("all-events page does not display the cafe column: %s", allEventsHTML)
 	}
-	if !strings.Contains(string(allEventsHTML), `href="`+stylesheetPath+`"`) || !strings.Contains(string(allEventsHTML), `href="`+picoPath+`"`) {
+	if !strings.Contains(string(allEventsHTML), `href="`+stylesheetPath+`"`) || !strings.Contains(string(allEventsHTML), `href="`+bladesPath+`"`) {
 		t.Errorf("all-events page does not reference the fingerprinted stylesheet: %s", allEventsHTML)
 	}
 
@@ -338,7 +363,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(outputDir, "img", "unused.jpg")); !os.IsNotExist(err) {
 		t.Errorf("unreferenced image should not be copied, stat error = %v", err)
 	}
-	for _, name := range []string{"course.geojson", ".htaccess"} {
+	for _, name := range []string{"course.geojson", "counter.php", ".htaccess", "blades.LICENSE.md", "pico.LICENSE.md"} {
 		content, err := os.ReadFile(filepath.Join(outputDir, name))
 		if err != nil {
 			t.Errorf("asset %s was not copied: %v", name, err)
@@ -348,7 +373,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	}
 	for name, want := range map[string]string{
 		stylesheetPath: "style.css",
-		picoPath:       "pico.min.css",
+		bladesPath:     "blades.min.css",
 		scriptPath:     "main.js",
 	} {
 		content, err := os.ReadFile(filepath.Join(outputDir, name))

@@ -1,4 +1,4 @@
-/* Site-specific additions on top of Pico CSS (pico.min.css). */
+/* Site-specific additions on top of Blades CSS (blades.min.css). */
 html { scroll-behavior: smooth; }
 section[id] { scroll-margin-top: 1rem; }
 
@@ -79,7 +79,7 @@ article > :last-child { margin-bottom: 0; }
   color: var(--pico-muted-color);
   text-align: center;
 }
-/* Pico styles [role="button"]; keep Leaflet's own zoom/attribution controls untouched. */
+/* Blades styles [role="button"]; keep Leaflet's own zoom/attribution controls untouched. */
 .leaflet-container a[role="button"] {
   margin: 0;
   padding: 0;
