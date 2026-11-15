@@ -1,7 +1,10 @@
 .PHONY: generate serve
 
-generate:
+generate-only:
 	@go run ./generator/main.go -output .out -config secrets.json
+
+generate:
+	@go run ./generator/main.go -wordpress -output .out -config secrets.json
 
 serve:
 	@python3 -m http.server 8000 --directory .out & \
@@ -11,10 +14,18 @@ serve:
 	wait "$$server_pid"
 
 test:
-	cd generator ; go test ./...
+	go test ./...
+
 
 upload: generate
 	@rsync \
 		-avz \
 		.out/ \
 		echeclus.uberspace.de:/var/www/virtual/floppnet/parkrun.freiburg.run/
+
+upload-only: generate-only
+	@rsync \
+		-avz \
+		.out/ \
+		echeclus.uberspace.de:/var/www/virtual/floppnet/parkrun.freiburg.run/
+

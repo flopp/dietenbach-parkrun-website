@@ -13,6 +13,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/chromedp/chromedp"
 )
 
 const maxImageDimension = 512
@@ -50,6 +53,12 @@ type config struct {
 		APIKey  string `json:"api_key"`
 		SheetID string `json:"sheet_id"`
 	} `json:"google"`
+	Wordpress struct {
+		Site       string `json:"site"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		TargetPost string `json:"target_post"`
+	} `json:"wordpress"`
 }
 
 type sheetData struct {
@@ -84,24 +93,35 @@ func main() {
 	imageDir := flag.String("images", "./images", "directory containing source images")
 	outputDir := flag.String("output", "./output", "directory to write the generated site")
 	configPath := flag.String("config", "./secrets.json", "path to Google Sheets configuration")
+	wordpress := flag.Bool("wordpress", false, "enable WordPress integration")
+
 	flag.Parse()
 
-	if err := generate(*sourceDir, *imageDir, *outputDir, *configPath); err != nil {
+	settings, err := readConfig(*configPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to read configuration:", err)
+		os.Exit(1)
+	}
+
+	if err := generate(*sourceDir, *imageDir, *outputDir, settings); err != nil {
 		fmt.Fprintln(os.Stderr, "site generation failed:", err)
 		os.Exit(1)
 	}
-}
 
-func generate(sourceDir, imageDir, outputDir, configPath string) error {
-	client := &http.Client{Timeout: 30 * time.Second}
-	return generateWithDependencies(sourceDir, imageDir, outputDir, configPath, client, sheetsAPIURL, leafletAssetsBaseURL)
-}
-
-func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string, client *http.Client, apiURL, leafletBaseURL string) error {
-	settings, err := readConfig(configPath)
-	if err != nil {
-		return err
+	if *wordpress {
+		if err := publishToWordpress(*outputDir, settings); err != nil {
+			fmt.Fprintln(os.Stderr, "WordPress publishing failed:", err)
+			os.Exit(1)
+		}
 	}
+}
+
+func generate(sourceDir, imageDir, outputDir string, settings config) error {
+	client := &http.Client{Timeout: 30 * time.Second}
+	return generateWithDependencies(sourceDir, imageDir, outputDir, settings, client, sheetsAPIURL, leafletAssetsBaseURL)
+}
+
+func generateWithDependencies(sourceDir, imageDir, outputDir string, settings config, client *http.Client, apiURL, leafletBaseURL string) error {
 	events, err := fetchEvents(context.Background(), client, apiURL, settings)
 	if err != nil {
 		return err
@@ -160,6 +180,19 @@ func generateWithDependencies(sourceDir, imageDir, outputDir, configPath string,
 	rendered = fingerprintAssetReferences(rendered, frameworkPath, stylesheetPath, scriptPath)
 	if err := os.WriteFile(filepath.Join(outputDir, "events.html"), []byte(rendered), 0o644); err != nil {
 		return fmt.Errorf("write generated events page: %w", err)
+	}
+
+	wordPressEventsTemplatePath := filepath.Join(sourceDir, "events-wordpress.html")
+	wordPressEventsTemplate, err := os.ReadFile(wordPressEventsTemplatePath)
+	if err != nil {
+		return fmt.Errorf("read WordPress events page template %q: %w", wordPressEventsTemplatePath, err)
+	}
+	rendered, err = renderTemplate(string(wordPressEventsTemplate), data)
+	if err != nil {
+		return fmt.Errorf("render WordPress events page template: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(outputDir, "events-wordpress.html"), []byte(rendered), 0o644); err != nil {
+		return fmt.Errorf("write generated WordPress events page: %w", err)
 	}
 
 	for _, name := range []string{"course.geojson", "counter.php", ".htaccess"} {
@@ -604,4 +637,155 @@ func writeFile(destination string, input io.Reader) error {
 		return err
 	}
 	return nil
+}
+
+func publishToWordpress(outputDir string, settings config) error {
+	// read html from outputDir/events-wordpress.html
+	htmlPath := filepath.Join(outputDir, "events-wordpress.html")
+	htmlBytes, err := os.ReadFile(htmlPath)
+	if err != nil {
+		return fmt.Errorf("failed to read HTML file: %w", err)
+	}
+	html := string(htmlBytes)
+
+	allocOpts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", false),
+		chromedp.Flag("disable-gpu", true),
+	)
+
+	allocCtx, cancelAlloc := chromedp.NewExecAllocator(context.Background(), allocOpts...)
+	defer cancelAlloc()
+
+	browserCtx, cancelBrowser := chromedp.NewContext(allocCtx)
+	defer cancelBrowser()
+
+	ctx, cancelTimeout := context.WithTimeout(browserCtx, 20*time.Second)
+	defer cancelTimeout()
+
+	return publishToWordpressInBrowser(ctx, html, settings)
+}
+
+func publishToWordpressInBrowser(ctx context.Context, html string, settings config) error {
+	loginURL := strings.TrimRight(settings.Wordpress.Site, "/")
+	editURL := fmt.Sprintf("%s/post.php?post=%s&action=edit", loginURL, settings.Wordpress.TargetPost)
+
+	var currentContent string
+	log.Printf("Browser step 1/4: Opening login page %s", loginURL)
+	if err := chromedp.Do(ctx,
+		chromedp.Navigate(loginURL),
+		chromedp.WaitVisible(chromedp.ID("user_login")),
+	); err != nil {
+		return err
+	}
+	log.Println("Browser step 1/4 done: Login page is ready")
+
+	log.Println("Browser step 2/4: Logging in")
+	if err := chromedp.Do(ctx,
+		chromedp.SendKeys(chromedp.ID("user_login"), settings.Wordpress.Username),
+		chromedp.SendKeys(chromedp.ID("user_pass"), settings.Wordpress.Password),
+		chromedp.Click(chromedp.ID("wp-submit")),
+	); err != nil {
+		return err
+	}
+	state, err := capturePageState(ctx)
+	if err != nil {
+		return fmt.Errorf("login submitted, but failed to inspect resulting page: %w", err)
+	}
+	log.Printf("Browser step 2/4 status: current_url=%s, title=%q, has_login_form=%t, has_admin_ui=%t", state.URL, state.Title, state.HasLoginForm, state.HasAdminUI)
+	if state.Message != "" {
+		log.Printf("Browser step 2/4 message: %s", state.Message)
+	}
+	if err := verifyLoginSucceeded(state); err != nil {
+		return err
+	}
+	log.Println("Browser step 2/4 done: Login appears successful")
+
+	log.Printf("Browser step 3/4: Opening editor page %s", editURL)
+	if err := chromedp.Do(ctx,
+		chromedp.Navigate(editURL),
+		chromedp.WaitVisible(chromedp.ID("content-html")),
+		chromedp.Click(chromedp.ID("content-html")),
+		chromedp.WaitVisible(chromedp.ID("content")),
+	); err != nil {
+		return err
+	}
+	currentContent, err = chromedp.Run(ctx, chromedp.Value(chromedp.ID("content")))
+	if err != nil {
+		return err
+	}
+	log.Printf("Browser step 3/4 done: Editor loaded in text mode (current content size: %d bytes)", len(currentContent))
+
+	log.Printf("Browser step 4/4: Replacing content with %d bytes and clicking Update", len(html))
+	setContentScript := fmt.Sprintf(`(() => {
+		const textarea = document.getElementById("content");
+		if (!textarea) {
+			throw new Error("textarea #content not found");
+		}
+		textarea.value = %q;
+		textarea.dispatchEvent(new Event("input", { bubbles: true }));
+		textarea.dispatchEvent(new Event("change", { bubbles: true }));
+	})();`, html)
+	if err := chromedp.Do(ctx, chromedp.EvaluateAsDevTools[chromedp.Void](setContentScript)); err != nil {
+		return fmt.Errorf("replace editor content: %w", err)
+	}
+	if err := chromedp.Do(ctx,
+		chromedp.Click(chromedp.ID("publish")),
+		chromedp.WaitVisible(chromedp.ID("message")),
+	); err != nil {
+		return fmt.Errorf("submit WordPress update: %w", err)
+	}
+	log.Println("Browser step 4/4 done: Update submitted and confirmation message detected")
+	return nil
+}
+
+type pageState struct {
+	URL          string
+	Title        string
+	HasLoginForm bool
+	HasAdminUI   bool
+	Message      string
+}
+
+func capturePageState(ctx context.Context) (*pageState, error) {
+	inspectCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+
+	if err := chromedp.Do(inspectCtx, chromedp.Sleep(1500*time.Millisecond)); err != nil {
+		return nil, err
+	}
+	state, err := chromedp.Run(inspectCtx, chromedp.Evaluate[pageState](`(() => {
+			const node = document.querySelector('#login_error, .login .message, .notice, .error');
+			return {
+				URL: window.location.href,
+				Title: document.title,
+				HasLoginForm: Boolean(document.querySelector('#user_login')),
+				HasAdminUI: Boolean(document.querySelector('#wpadminbar, #adminmenuwrap, body.wp-admin')),
+				Message: node ? node.textContent.trim() : ""
+			};
+		})()`))
+	if err != nil {
+		return nil, err
+	}
+
+	return &state, nil
+}
+
+func verifyLoginSucceeded(state *pageState) error {
+	if state.HasAdminUI {
+		return nil
+	}
+
+	if state.HasLoginForm {
+		msg := state.Message
+		if msg == "" {
+			msg = "no login error message was found"
+		}
+		return fmt.Errorf("login does not appear to have succeeded: still on login page (url=%s, title=%q, message=%q)", state.URL, state.Title, msg)
+	}
+
+	if strings.Contains(state.URL, "/wp-admin") && !strings.Contains(state.URL, "wp-login") {
+		return nil
+	}
+
+	return fmt.Errorf("unable to confirm login success (url=%s, title=%q, message=%q)", state.URL, state.Title, state.Message)
 }

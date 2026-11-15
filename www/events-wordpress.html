@@ -1,0 +1,27 @@
+Auf dieser Seite findest du eine <b>vollständige Übersicht</b> über alle bisherigen Events des <b>Dietenbach parkruns</b> - inklusive Links zu den Ergebnisse, Laufberichten und Fotoalben.
+Wir aktualisieren die Seite wöchentlich.
+
+<br><br>
+<em>Weitere <b>Informationen und Statistiken</b> gibt es auf Florian's eigener <a href="https://parkrun.freiburg.run">Info-Seite zum Dietenbach parkrun</a>.</em>
+<br>
+
+<table class="Results-table">
+    <thead>
+        <tr>
+            <th class="Results-table-th"># / Datum</th>
+            <th class="Results-table-th">Highlights</th>
+            <th class="Results-table-th">Details</th>
+        </tr>
+    </thead>
+    <tbody>{{range .Events}}
+        <tr>
+            <td class="Results-table-td">{{if .Index}}#{{.Index}} / {{end}}{{.Date}}</td>
+            <td class="Results-table-td">{{.Special}}</td>
+            <td class="Results-table-td">
+                {{if .ResultsURL}}<div class="Results-table--green"><a href="{{.ResultsURL}}">Ergebnisse</a></div>{{end}}
+                {{if .ReportURL}}<div class="Results-table--green"><a href="{{.ReportURL}}">Bericht{{if .ReportAuthor}} ({{.ReportAuthor}}){{end}}</a></div>{{end}}
+                {{if .PhotosURL}}<div class="Results-table--green"><a href="{{.PhotosURL}}">Fotos</a></div>{{end}}
+            </td>
+        </tr>{{end}}
+    </tbody>
+</table>

@@ -16,7 +16,80 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/chromedp/chromedp"
 )
+
+func TestPublishToWordpressInBrowser(t *testing.T) {
+	if os.Getenv("CHROMEDP_INTEGRATION_TEST") != "1" {
+		t.Skip("set CHROMEDP_INTEGRATION_TEST=1 to run the local Chrome integration test")
+	}
+
+	const content = "<p>Ein &amp; zwei\n\"drei\"</p>"
+	submitted := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("%s %s", r.Method, r.URL)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		switch r.URL.Path {
+		case "/wp-admin":
+			fmt.Fprint(w, `<form method="post" action="/login"><input id="user_login" name="user"><input id="user_pass" name="password" type="password"><button id="wp-submit">Login</button></form>`)
+		case "/login":
+			if err := r.ParseForm(); err != nil {
+				t.Error(err)
+				http.Error(w, "bad form", http.StatusBadRequest)
+				return
+			}
+			if r.Form.Get("user") != "test-user" || r.Form.Get("password") != "test-password" {
+				http.Error(w, "bad credentials", http.StatusUnauthorized)
+				return
+			}
+			http.Redirect(w, r, "/wp-admin/dashboard", http.StatusSeeOther)
+		case "/wp-admin/dashboard":
+			fmt.Fprint(w, `<title>Dashboard</title><body class="wp-admin">Dashboard</body>`)
+		case "/wp-admin/post.php":
+			if r.URL.Query().Get("post") != "42" || r.URL.Query().Get("action") != "edit" {
+				http.Error(w, "wrong editor", http.StatusBadRequest)
+				return
+			}
+			if r.Method == http.MethodPost {
+				if err := r.ParseForm(); err != nil {
+					t.Error(err)
+					http.Error(w, "bad form", http.StatusBadRequest)
+					return
+				}
+				submitted <- r.Form.Get("content")
+				fmt.Fprint(w, `<div id="message">Updated</div>`)
+				return
+			}
+			fmt.Fprint(w, `<button id="content-html" type="button">Text</button><form method="post"><textarea id="content" name="content">old content</textarea><button id="publish">Update</button></form>`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	var settings config
+	settings.Wordpress.Site = server.URL + "/wp-admin"
+	settings.Wordpress.Username = "test-user"
+	settings.Wordpress.Password = "test-password"
+	settings.Wordpress.TargetPost = "42"
+
+	browserCtx, cancelBrowser := chromedp.NewContext(context.Background())
+	defer cancelBrowser()
+	ctx, cancel := context.WithTimeout(browserCtx, 20*time.Second)
+	defer cancel()
+	if err := publishToWordpressInBrowser(ctx, content, settings); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case got := <-submitted:
+		if got != content {
+			t.Errorf("published content = %q, want %q", got, content)
+		}
+	default:
+		t.Error("editor did not submit the content")
+	}
+}
 
 func TestCafeIsDisplayedOnEventsPage(t *testing.T) {
 	events, _, err := prepareEvents(sheetData{
@@ -37,6 +110,28 @@ func TestCafeIsDisplayedOnEventsPage(t *testing.T) {
 	}
 	if !strings.Contains(html, "<th scope=\"col\">Café</th>") || !strings.Contains(html, "<td>Küchenschelle</td>") {
 		t.Errorf("events page does not display the cafe column: %s", html)
+	}
+}
+
+func TestWordPressEventsTemplateRendersEvents(t *testing.T) {
+	events, _, err := prepareEvents(sheetData{
+		Headers: []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS"},
+		Rows:    [][]string{{"42", "2026-11-07", "Halloween", "27", "", "", "", ""}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	template, err := os.ReadFile(filepath.Join("..", "www", "events-wordpress.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html, err := renderTemplate(string(template), pageData{Events: events})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html, "<td>#42 / 2026-11-07</td>") || !strings.Contains(html, "<td>Halloween</td>") {
+		t.Errorf("WordPress events page does not display event data: %s", html)
 	}
 }
 
@@ -110,6 +205,10 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(sourceDir, "events.html"), []byte(eventsTemplate), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	wordPressEventsTemplate := `<table><tbody>{{range .Events}}<tr><td>{{.Index}}</td><td>{{.Date}}</td></tr>{{end}}</tbody></table>`
+	if err := os.WriteFile(filepath.Join(sourceDir, "events-wordpress.html"), []byte(wordPressEventsTemplate), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(configPath, []byte(`{"google":{"api_key":"test-key","sheet_id":"test-sheet"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +238,11 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := generateWithDependencies(sourceDir, imageDir, outputDir, configPath, server.Client(), server.URL, server.URL+"/leaflet"); err != nil {
+	settings, err := readConfig(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := generateWithDependencies(sourceDir, imageDir, outputDir, settings, server.Client(), server.URL, server.URL+"/leaflet"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -201,6 +304,22 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	}
 	if !strings.Contains(string(allEventsHTML), `href="`+stylesheetPath+`"`) || !strings.Contains(string(allEventsHTML), `href="`+picoPath+`"`) {
 		t.Errorf("all-events page does not reference the fingerprinted stylesheet: %s", allEventsHTML)
+	}
+
+	wordPressEventsHTML, err := os.ReadFile(filepath.Join(outputDir, "events-wordpress.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Count(string(wordPressEventsHTML), "<tr>"); got != 7 {
+		t.Errorf("WordPress events page rows = %d, want all 7 past events", got)
+	}
+	if !strings.Contains(string(wordPressEventsHTML), "<td>7</td><td>2000-10-17</td>") {
+		t.Errorf("WordPress events page did not render event data: %s", wordPressEventsHTML)
+	}
+	for _, page := range [][]byte{html, allEventsHTML} {
+		if strings.Contains(string(page), `href="events-wordpress.html"`) {
+			t.Errorf("site page links to the unlinked WordPress events page: %s", page)
+		}
 	}
 
 	imageFile, err := os.Open(filepath.Join(outputDir, "img", "park.jpg"))
