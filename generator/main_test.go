@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/xml"
 	"fmt"
 	"image"
 	"image/color"
@@ -207,6 +208,33 @@ func TestSiteTemplatesReferenceFingerprintedBlades(t *testing.T) {
 	}
 }
 
+func TestWriteSitemapEscapesURLsAndReportsWriteErrors(t *testing.T) {
+	outputDir := t.TempDir()
+	today := time.Date(2026, time.November, 20, 23, 0, 0, 0, time.FixedZone("CET", 3600))
+	if err := writeSitemap(outputDir, []string{"a & b.html"}, today); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(outputDir, "sitemap.xml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sitemap struct {
+		URLs []struct {
+			Location string `xml:"loc"`
+			LastMod  string `xml:"lastmod"`
+		} `xml:"url"`
+	}
+	if err := xml.Unmarshal(content, &sitemap); err != nil {
+		t.Fatal(err)
+	}
+	if len(sitemap.URLs) != 1 || sitemap.URLs[0].Location != "https://parkrun.freiburg.run/a%20&%20b.html" || sitemap.URLs[0].LastMod != "2026-11-20" {
+		t.Errorf("unexpected sitemap entries: %+v", sitemap.URLs)
+	}
+	if err := writeSitemap(filepath.Join(outputDir, "missing"), nil, today); err == nil || !strings.Contains(err.Error(), "write sitemap") {
+		t.Errorf("writeSitemap error = %v, want a sitemap write error", err)
+	}
+}
+
 func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	root := t.TempDir()
 	sourceDir := filepath.Join(root, "www")
@@ -264,9 +292,46 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(outputDir, "stale.html"), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	today := time.Date(2000, time.October, 18, 12, 0, 0, 0, time.Local)
 	if err := generateWithDependencies(sourceDir, imageDir, outputDir, settings, server.Client(), server.URL, server.URL+"/leaflet", today); err != nil {
 		t.Fatal(err)
+	}
+
+	sitemapContent, err := os.ReadFile(filepath.Join(outputDir, "sitemap.xml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sitemap struct {
+		XMLName xml.Name `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 urlset"`
+		URLs    []struct {
+			Location string `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 loc"`
+			LastMod  string `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 lastmod"`
+		} `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 url"`
+	}
+	if err := xml.Unmarshal(sitemapContent, &sitemap); err != nil {
+		t.Fatalf("parse sitemap: %v", err)
+	}
+	wantURLs := map[string]bool{
+		"https://parkrun.freiburg.run/":            true,
+		"https://parkrun.freiburg.run/events.html": true,
+	}
+	for _, entry := range sitemap.URLs {
+		if !wantURLs[entry.Location] {
+			t.Errorf("unexpected or duplicate sitemap URL %q", entry.Location)
+		}
+		delete(wantURLs, entry.Location)
+		if entry.LastMod != "2000-10-18" {
+			t.Errorf("lastmod for %q = %q, want 2000-10-18", entry.Location, entry.LastMod)
+		}
+	}
+	if len(wantURLs) != 0 {
+		t.Errorf("missing sitemap URLs: %v", wantURLs)
 	}
 
 	html, err := os.ReadFile(filepath.Join(outputDir, "index.html"))

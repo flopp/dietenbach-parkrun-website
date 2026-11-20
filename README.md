@@ -16,3 +16,6 @@ https://parkrun.freiburg.run
 - The site generator names `blades.min.css`, `style.css` and `main.js` using their
   SHA-256 checksums. When one changes, the generated HTML references a new filename
   so browsers fetch the updated asset on the next page load.
+- The generator writes `sitemap.xml` with the canonical URLs of the rendered site
+  pages and their generation date as `lastmod`. The WordPress HTML fragment is
+  excluded.

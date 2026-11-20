@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"html/template"
@@ -30,6 +31,7 @@ const maxImageDimension = 512
 const latestEventCount = 5
 const sheetsAPIURL = "https://sheets.googleapis.com"
 const leafletAssetsBaseURL = "https://unpkg.com/leaflet@1.9.4"
+const siteBaseURL = "https://parkrun.freiburg.run/"
 
 var leafletAssets = []struct {
 	sourcePath string
@@ -134,6 +136,15 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
+	var sitemapPages []string
+	writePage := func(name, html string) error {
+		if err := os.WriteFile(filepath.Join(outputDir, name), []byte(html), 0o644); err != nil {
+			return fmt.Errorf("write generated HTML %q: %w", name, err)
+		}
+		sitemapPages = append(sitemapPages, name)
+		return nil
+	}
+
 	stylesheetPath, err := copyFingerprintAsset(sourceDir, outputDir, "style.css")
 	if err != nil {
 		return fmt.Errorf("copy stylesheet: %w", err)
@@ -167,8 +178,8 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return err
 	}
 	html = fingerprintAssetReferences(html, frameworkPath, stylesheetPath, scriptPath)
-	if err := os.WriteFile(filepath.Join(outputDir, "index.html"), []byte(html), 0o644); err != nil {
-		return fmt.Errorf("write generated HTML: %w", err)
+	if err := writePage("index.html", html); err != nil {
+		return err
 	}
 
 	eventsTemplatePath := filepath.Join(sourceDir, "events.html")
@@ -181,8 +192,8 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return fmt.Errorf("render events page template: %w", err)
 	}
 	rendered = fingerprintAssetReferences(rendered, frameworkPath, stylesheetPath, scriptPath)
-	if err := os.WriteFile(filepath.Join(outputDir, "events.html"), []byte(rendered), 0o644); err != nil {
-		return fmt.Errorf("write generated events page: %w", err)
+	if err := writePage("events.html", rendered); err != nil {
+		return err
 	}
 
 	wordPressEventsTemplatePath := filepath.Join(sourceDir, "events-wordpress.html")
@@ -198,7 +209,7 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return fmt.Errorf("write generated WordPress events page: %w", err)
 	}
 
-	for _, name := range []string{"course.geojson", "counter.php", ".htaccess", "blades.LICENSE.md", "pico.LICENSE.md"} {
+	for _, name := range []string{"course.geojson", "counter.php", ".htaccess", "robots.txt", "blades.LICENSE.md", "pico.LICENSE.md"} {
 		if err := copyFile(filepath.Join(sourceDir, name), filepath.Join(outputDir, name)); err != nil {
 			return fmt.Errorf("copy site asset %q: %w", name, err)
 		}
@@ -207,7 +218,38 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return err
 	}
 
+	if err := writeSitemap(outputDir, sitemapPages, today); err != nil {
+		return err
+	}
+
 	fmt.Printf("Generated site in %s\n", outputDir)
+	return nil
+}
+
+func writeSitemap(outputDir string, pages []string, today time.Time) error {
+	type sitemapURL struct {
+		Location string `xml:"loc"`
+		LastMod  string `xml:"lastmod"`
+	}
+	sitemap := struct {
+		XMLName xml.Name     `xml:"urlset"`
+		XMLNS   string       `xml:"xmlns,attr"`
+		URLs    []sitemapURL `xml:"url"`
+	}{XMLNS: "http://www.sitemaps.org/schemas/sitemap/0.9"}
+	for _, page := range pages {
+		location := siteBaseURL
+		if page != "index.html" {
+			location += (&url.URL{Path: page}).EscapedPath()
+		}
+		sitemap.URLs = append(sitemap.URLs, sitemapURL{Location: location, LastMod: today.Format("2006-01-02")})
+	}
+	content, err := xml.MarshalIndent(sitemap, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode sitemap: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(outputDir, "sitemap.xml"), append([]byte(xml.Header), append(content, '\n')...), 0o644); err != nil {
+		return fmt.Errorf("write sitemap: %w", err)
+	}
 	return nil
 }
 
