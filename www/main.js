@@ -30,6 +30,12 @@ if (visitorHistory) {
     alert("DEACTIVATE visitor counter.");
     counterReadOnly = true;
   }
+  try {
+    window.localStorage.setItem(counterReadOnlyStorageKey, String(counterReadOnly));
+  } catch (error) {
+    console.warn("Besucherzähler konnte den lokalen Speicher nicht schreiben.", error);
+  }
+
 
   const counterUrl = counterReadOnly ? "counter.php?readOnly=1" : "counter.php";
   fetch(counterUrl, { cache: "no-store" })
