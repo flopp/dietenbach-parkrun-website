@@ -1,10 +1,10 @@
 .PHONY: generate serve
 
 generate-only:
-	@go run ./generator/main.go -output .out -config secrets.json
+	@go run ./generator/main.go -output .out -cache .cache -config secrets.json
 
 generate:
-	@go run ./generator/main.go -wordpress -output .out -config secrets.json
+	@go run ./generator/main.go -wordpress -output .out -cache .cache -config secrets.json
 
 serve:
 	@python3 -m http.server 8000 --directory .out & \

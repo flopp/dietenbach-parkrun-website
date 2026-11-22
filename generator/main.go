@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/chromedp/chromedp"
+	"github.com/flopp/dietenbach-parkrun-website/internal"
 )
 
 const maxImageDimension = 512
@@ -71,6 +72,7 @@ type sheetData struct {
 type event struct {
 	Index        string
 	Date         string
+	Temperature  string
 	Special      string
 	Cafe         string
 	Runners      string
@@ -85,6 +87,10 @@ func (e *event) IndexDate() string {
 	return fmt.Sprintf("%s #%s", e.Date, e.Index)
 }
 
+func getTemperatureForEvent(eventDate time.Time) (float64, error) {
+	return internal.GetTemperatureForEvent(eventDate)
+}
+
 type pageData struct {
 	Updated      string
 	Events       []event
@@ -96,9 +102,12 @@ func main() {
 	imageDir := flag.String("images", "./images", "directory containing source images")
 	outputDir := flag.String("output", "./output", "directory to write the generated site")
 	configPath := flag.String("config", "./secrets.json", "path to Google Sheets configuration")
+	cacheDir := flag.String("cache", ".cache", "base directory for cached data")
 	wordpress := flag.Bool("wordpress", false, "enable WordPress integration")
 
 	flag.Parse()
+
+	internal.SetCacheDir(*cacheDir)
 
 	settings, err := readConfig(*configPath)
 	if err != nil {
@@ -411,6 +420,7 @@ func prepareEvents(data sheetData, today time.Time) ([]event, []event, error) {
 		columns[name] = index
 	}
 	cafeColumn := findColumn(data.Headers, "CAFE")
+	temperatureColumn := findColumn(data.Headers, "TEMP")
 
 	todayStart := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
 
@@ -427,6 +437,10 @@ func prepareEvents(data sheetData, today time.Time) ([]event, []event, error) {
 
 		index := cell("INDEX")
 		date := cell("DATE")
+		temperature := ""
+		if temperatureColumn >= 0 && temperatureColumn < len(row) {
+			temperature = strings.TrimSpace(row[temperatureColumn])
+		}
 		special := cell("SPECIAL")
 		runners := cell("RUNNERS")
 		report := cell("REPORT")
@@ -434,9 +448,22 @@ func prepareEvents(data sheetData, today time.Time) ([]event, []event, error) {
 		photos := cell("PHOTOS")
 
 		future := false
-		if eventDate, err := parseEventDate(date, time.Local); err == nil {
+		eventDate, err := parseEventDate(date, time.Local)
+		if err == nil {
 			if eventDate.After(todayStart) {
 				future = true
+			}
+		}
+
+		indexIsNumber := false
+		if _, err := strconv.Atoi(index); err == nil {
+			indexIsNumber = true
+		}
+		if temperature == "" && !future && indexIsNumber {
+			// Get missing temperature for past parkrun event
+			if temp, err := getTemperatureForEvent(eventDate); err == nil {
+				fmt.Printf("Fetched temperature for event on %s: %.1f\n", date, temp)
+				temperature = fmt.Sprintf("%.1f", temp)
 			}
 		}
 
@@ -449,6 +476,7 @@ func prepareEvents(data sheetData, today time.Time) ([]event, []event, error) {
 			latest = append(latest, event{
 				Index:        index,
 				Date:         date,
+				Temperature:  temperature,
 				Special:      special,
 				Cafe:         cafe,
 				Runners:      runners,
@@ -462,6 +490,7 @@ func prepareEvents(data sheetData, today time.Time) ([]event, []event, error) {
 		events = append(events, event{
 			Index:        index,
 			Date:         date,
+			Temperature:  temperature,
 			Special:      special,
 			Cafe:         cafe,
 			Runners:      runners,

@@ -94,8 +94,8 @@ func TestPublishToWordpressInBrowser(t *testing.T) {
 
 func TestCafeIsDisplayedOnEventsPage(t *testing.T) {
 	events, _, err := prepareEvents(sheetData{
-		Headers: []string{"INDEX", "DATE", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS", "CAFE"},
-		Rows:    [][]string{{"42", "2026-11-07", "", "27", "", "", "", "", "Küchenschelle"}},
+		Headers: []string{"INDEX", "DATE", "TEMP", "SPECIAL", "RUNNERS", "RESULTS", "REPORT", "AUTHOR", "PHOTOS", "CAFE"},
+		Rows:    [][]string{{"42", "2026-11-07", "12.3", "", "27", "", "", "", "", "Küchenschelle"}},
 	}, time.Now())
 	if err != nil {
 		t.Fatal(err)
@@ -109,8 +109,11 @@ func TestCafeIsDisplayedOnEventsPage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(html, "<th scope=\"col\">Café</th>") || !strings.Contains(html, "<td>Küchenschelle</td>") {
-		t.Errorf("events page does not display the cafe column: %s", html)
+	if !strings.Contains(html, "<th scope=\"col\">Temperatur</th>") ||
+		!strings.Contains(html, "<td>12.3 °C</td>") ||
+		!strings.Contains(html, "<th scope=\"col\">Café</th>") ||
+		!strings.Contains(html, "<td>Küchenschelle</td>") {
+		t.Errorf("events page does not display the temperature and cafe columns: %s", html)
 	}
 }
 

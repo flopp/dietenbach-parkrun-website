@@ -34,6 +34,7 @@
               <th scope="col">Nr.</th>
               <th scope="col">Datum</th>
               <th scope="col">Special</th>
+              <th scope="col">Temperatur</th>
               <th scope="col">Café</th>
               <th scope="col">Teilnehmer</th>
               <th scope="col">Ergebnisse</th>
@@ -47,6 +48,7 @@
               <td>{{.Index}}</td>
               <td>{{.Date}}{{if .Future}}<br>(zukünftig){{end}}</td>
               <td>{{.Special}}</td>
+              <td>{{if .Temperature}}{{.Temperature}} °C{{end}}</td>
               <td>{{.Cafe}}</td>
               <td>{{.Runners}}</td>
               <td>{{if .ResultsURL}}<a href="{{.ResultsURL}}">Ergebnisse</a>{{end}}</td>
