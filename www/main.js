@@ -12,9 +12,27 @@ themeButton.addEventListener("click", () => {
   showThemeState(isDark);
 });
 
+// COUNTER
 const visitorHistory = document.querySelector(".visitor-count-history");
 if (visitorHistory) {
-  fetch("counter.php", { cache: "no-store" })
+  const counterReadOnlyStorageKey = "dietenbach-counter-read-only";
+  let counterReadOnly = false;
+  try {
+    counterReadOnly = window.localStorage.getItem(counterReadOnlyStorageKey) === "true";
+  } catch (error) {
+    console.warn("Besucherzähler konnte den lokalen Speicher nicht lesen.", error);
+  }
+
+  if (window.location.hash === "#count") {
+    console.log("ACTIVATE visitor counter.");
+    counterReadOnly = false;
+  } else if (window.location.hash === "#nocount") {
+    console.log("DEACTIVATE visitor counter.");
+    counterReadOnly = true;
+  }
+
+  const counterUrl = counterReadOnly ? "counter.php?readOnly=1" : "counter.php";
+  fetch(counterUrl, { cache: "no-store" })
     .then((response) => {
       if (!response.ok) {
         throw new Error(`Besucherzähler konnte nicht geladen werden (HTTP ${response.status}).`);

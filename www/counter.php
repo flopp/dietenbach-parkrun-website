@@ -5,6 +5,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 $now = new DateTimeImmutable('now', new DateTimeZone('Europe/Berlin'));
 $today = $now->format('Y-m-d');
 $firstDay = $now->modify('-6 days')->format('Y-m-d');
+$readOnly = isset($_GET['readOnly']) && $_GET['readOnly'] === '1';
 $periods = [
     'day' => $today,
 ];
@@ -17,7 +18,7 @@ if ($counter === false) {
     exit;
 }
 
-if (!flock($counter, LOCK_EX)) {
+if (!flock($counter, $readOnly ? LOCK_SH : LOCK_EX)) {
     error_log('Unable to lock visitor counter file.');
     fclose($counter);
     http_response_code(500);
@@ -86,7 +87,7 @@ foreach ($periods as $period => $key) {
         $current['count'] = 0;
     }
 
-    if ($current['count'] === PHP_INT_MAX) {
+    if (!$readOnly && $current['count'] === PHP_INT_MAX) {
         error_log('Visitor period count has reached the maximum value.');
         flock($counter, LOCK_UN);
         fclose($counter);
@@ -95,7 +96,7 @@ foreach ($periods as $period => $key) {
         exit;
     }
 
-    $counts[$period] = $current['count'] + 1;
+    $counts[$period] = $current['count'] + ($readOnly ? 0 : 1);
     $state['periods'][$period] = ['key' => $key, 'count' => $counts[$period]];
 }
 
@@ -133,7 +134,9 @@ foreach ($days as $day => $count) {
         unset($days[$day]);
     }
 }
-$days[$today] = $counts['day'];
+if (!$readOnly) {
+    $days[$today] = $counts['day'];
+}
 
 $state['days'] = $days;
 
@@ -146,7 +149,7 @@ for ($offset = 0; $offset <= 6; $offset++) {
     ];
 }
 
-if ($state['total'] === PHP_INT_MAX) {
+if (!$readOnly && $state['total'] === PHP_INT_MAX) {
     error_log('Visitor total count has reached the maximum value.');
     flock($counter, LOCK_UN);
     fclose($counter);
@@ -154,33 +157,35 @@ if ($state['total'] === PHP_INT_MAX) {
     echo json_encode(['error' => 'Counter unavailable']);
     exit;
 }
-$state['total']++;
-$serialized = json_encode($state);
-if ($serialized === false) {
-    error_log('Unable to encode visitor counter data.');
-    flock($counter, LOCK_UN);
-    fclose($counter);
-    http_response_code(500);
-    echo json_encode(['error' => 'Counter unavailable']);
-    exit;
-}
+if (!$readOnly) {
+    $state['total']++;
+    $serialized = json_encode($state);
+    if ($serialized === false) {
+        error_log('Unable to encode visitor counter data.');
+        flock($counter, LOCK_UN);
+        fclose($counter);
+        http_response_code(500);
+        echo json_encode(['error' => 'Counter unavailable']);
+        exit;
+    }
 
-if (!ftruncate($counter, 0) || !rewind($counter)) {
-    error_log('Unable to update visitor counter file.');
-    flock($counter, LOCK_UN);
-    fclose($counter);
-    http_response_code(500);
-    echo json_encode(['error' => 'Counter unavailable']);
-    exit;
-}
+    if (!ftruncate($counter, 0) || !rewind($counter)) {
+        error_log('Unable to update visitor counter file.');
+        flock($counter, LOCK_UN);
+        fclose($counter);
+        http_response_code(500);
+        echo json_encode(['error' => 'Counter unavailable']);
+        exit;
+    }
 
-if (fwrite($counter, $serialized) !== strlen($serialized) || !fflush($counter)) {
-    error_log('Unable to write visitor counter file.');
-    flock($counter, LOCK_UN);
-    fclose($counter);
-    http_response_code(500);
-    echo json_encode(['error' => 'Counter unavailable']);
-    exit;
+    if (fwrite($counter, $serialized) !== strlen($serialized) || !fflush($counter)) {
+        error_log('Unable to write visitor counter file.');
+        flock($counter, LOCK_UN);
+        fclose($counter);
+        http_response_code(500);
+        echo json_encode(['error' => 'Counter unavailable']);
+        exit;
+    }
 }
 
 flock($counter, LOCK_UN);
