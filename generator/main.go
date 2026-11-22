@@ -141,6 +141,9 @@ func generateWithDependencies(sourceDir, imageDir, outputDir string, settings co
 		return err
 	}
 
+	if err := os.RemoveAll(outputDir); err != nil {
+		return fmt.Errorf("clear output directory: %w", err)
+	}
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}

@@ -24,10 +24,10 @@ if (visitorHistory) {
   }
 
   if (window.location.hash === "#count") {
-    console.log("ACTIVATE visitor counter.");
+    alert("ACTIVATE visitor counter.");
     counterReadOnly = false;
   } else if (window.location.hash === "#nocount") {
-    console.log("DEACTIVATE visitor counter.");
+    alert("DEACTIVATE visitor counter.");
     counterReadOnly = true;
   }
 

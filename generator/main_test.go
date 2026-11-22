@@ -265,7 +265,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(`{"google":{"api_key":"test-key","sheet_id":"test-sheet"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"style.css", "blades.min.css", "main.js", "course.geojson", "counter.php", ".htaccess", "blades.LICENSE.md", "pico.LICENSE.md"} {
+	for _, name := range []string{"style.css", "blades.min.css", "main.js", "course.geojson", "counter.php", ".htaccess", "robots.txt", "blades.LICENSE.md", "pico.LICENSE.md"} {
 		if err := os.WriteFile(filepath.Join(sourceDir, name), []byte(name), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -304,6 +304,9 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	today := time.Date(2000, time.October, 18, 12, 0, 0, 0, time.Local)
 	if err := generateWithDependencies(sourceDir, imageDir, outputDir, settings, server.Client(), server.URL, server.URL+"/leaflet", today); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(outputDir, "stale.html")); !os.IsNotExist(err) {
+		t.Errorf("stale output file should be removed, stat error = %v", err)
 	}
 
 	sitemapContent, err := os.ReadFile(filepath.Join(outputDir, "sitemap.xml"))
@@ -431,7 +434,7 @@ func TestGenerateCopiesAssetsAndResizesReferencedImages(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(outputDir, "img", "unused.jpg")); !os.IsNotExist(err) {
 		t.Errorf("unreferenced image should not be copied, stat error = %v", err)
 	}
-	for _, name := range []string{"course.geojson", "counter.php", ".htaccess", "blades.LICENSE.md", "pico.LICENSE.md"} {
+	for _, name := range []string{"course.geojson", "counter.php", ".htaccess", "robots.txt", "blades.LICENSE.md", "pico.LICENSE.md"} {
 		content, err := os.ReadFile(filepath.Join(outputDir, name))
 		if err != nil {
 			t.Errorf("asset %s was not copied: %v", name, err)
