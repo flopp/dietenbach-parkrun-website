@@ -36,12 +36,14 @@
     <div class="hero">
       <div>
         <span class="eyebrow">Jeden Samstag · 9:00 Uhr · kostenlos</span>
-        <h1>Dietenbach parkrun.</h1>
-        <p class="intro">Ein kostenloser 5-km-Lauf im Freiburger Dietenbachpark – jeden Samstag um 9:00 Uhr.</p>
+        <hgroup>
+          <h1>Dietenbach parkrun.</h1>
+          <p>Ein kostenloser 5-km-Lauf im Freiburger Dietenbachpark – jeden Samstag um 9:00 Uhr.</p>
+        </hgroup>
         <p>Seit dem 23. Oktober 2021 bringt der Dietenbach parkrun Menschen im Park zusammen. Organisiert wird die Veranstaltung von einem Freiwilligenteam.</p>
         <a role="button" href="#mitmachen">Was ist parkrun?</a>
       </div>
-      <article class="hero-note">
+      <article>
         <strong>Alle sind willkommen</strong>
         <p>Bei uns treffen sich Menschen unterschiedlichen Alters und mit ganz verschiedenen Lauferfahrungen. Das inklusive, internationale Teilnehmerfeld ist vielfältig – ob du läufst, walkst oder mit anderen ins Gespräch kommst.</p>
         <p>Alle Kontakt- und Social-Media-Kanäle findest du unter <a href="#kontakt">Kontakt &amp; folge uns</a>.</p>
@@ -52,9 +54,8 @@
   <main>
     <section id="treffpunkt">
       <div class="container">
-        <span class="tag">Unser Standort</span>
         <h2>Treffpunkt</h2>
-        <p class="section-intro">
+        <p>
           Wir treffen uns jeden Samstag um 8:45 Uhr im Dietenbachpark - der Lauf startet nach einer Begrüßung um 9:00 Uhr.
         </p>
         <div class="map-layout">
@@ -76,9 +77,8 @@
 
     <section id="wetter">
       <div class="container">
-        <span class="tag">Für deinen parkrun</span>
-        <h2>Wetter am Samstag</h2>
-        <p class="section-intro" id="weather-date">Die Vorhersage für den nächsten parkrun wird geladen.</p>
+        <h2>Wetter am kommenden Samstag</h2>
+        <p id="weather-date">Die Vorhersage für den nächsten parkrun wird geladen.</p>
         <article class="weather-card" aria-live="polite">
           <p class="pending" id="weather-status" role="status">Die Wettervorhersage wird geladen.</p>
           <div class="weather-details" id="weather-details" hidden></div>
@@ -89,9 +89,8 @@
 
     <section id="anreise">
       <div class="container">
-        <span class="tag">Gut zu wissen</span>
         <h2>Anreise zum Dietenbach parkrun</h2>
-        <p class="section-intro">Du erreichst den Treffpunkt im Dietenbachpark mit dem Fahrrad, Straßenbahn oder dem Auto.</p>
+        <p>Du erreichst den Treffpunkt im Dietenbachpark mit dem Fahrrad, Straßenbahn oder dem Auto.</p>
         <div class="cards">
           <article>
             <h3>Mit dem Fahrrad</h3>
@@ -115,7 +114,6 @@
 
     <section id="strecke">
       <div class="container">
-        <span class="tag">Vor Ort</span>
         <h2>Die Strecke</h2>
         <div class="cards">
           <article>
@@ -146,9 +144,8 @@
 
     <section id="kontakt">
       <div class="container">
-        <span class="tag">In Verbindung bleiben</span>
         <h2>Kontakt &amp; folge uns</h2>
-        <p class="section-intro">Du hast eine Frage oder möchtest dich mit der Dietenbach-parkrun-Community vernetzen? Hier findest du alle Kontaktmöglichkeiten.</p>
+        <p>Du hast eine Frage oder möchtest dich mit der Dietenbach-parkrun-Community vernetzen? Hier findest du alle Kontaktmöglichkeiten.</p>
         <div class="cards">
           <article>
             <h3>Online</h3>
@@ -202,9 +199,8 @@
 
     <section id="mitmachen">
       <div class="container">
-        <span class="tag">Alle willkommen</span>
         <h2>So funktioniert parkrun</h2>
-        <p class="section-intro">parkrun ist eine kostenlose, gemeinschaftliche 5-Kilometer-Veranstaltung. Du kannst laufen, walken oder als Helferin oder Helfer dabei sein – ohne Zeitvorgabe.</p>
+        <p>parkrun ist eine kostenlose, gemeinschaftliche 5-Kilometer-Veranstaltung. Du kannst laufen, walken oder als Helferin oder Helfer dabei sein – ohne Zeitvorgabe.</p>
         <div class="cards">
           <article>
             <h3>Jedes Tempo willkommen</h3>
@@ -232,7 +228,7 @@
     <section id="veranstaltungen">
       <div class="container">
         <h2>Vergangene Veranstaltungen</h2>
-        <p class="section-intro">Den Dietenbach parkrun gibt es seit dem 23. Oktober 2021. Hier findest du die Ergebnisse vergangener Veranstaltungen.</p>
+        <p>Den Dietenbach parkrun gibt es seit dem 23. Oktober 2021. Hier findest du die Ergebnisse vergangener Veranstaltungen.</p>
         {{if .Events}}
         <div class="overflow-auto">
           <table class="striped">
@@ -269,9 +265,8 @@
 
     <section id="cafes">
       <div class="container">
-        <span class="tag">Nach dem parkrun</span>
         <h2>Gemeinsam einkehren</h2>
-        <p class="section-intro">Nach dem parkrun treffen sich Team und Teilnehmende in wechselnden Cafés. Die Auswahl wechselt wöchentlich. Entfernungen ab dem Treffpunkt; im Sommer gibt es am ersten Samstag des Monats stattdessen ein Picknick am Dietenbachsee.</p>
+        <p>Nach dem parkrun treffen sich Team und Teilnehmende in wechselnden Cafés. Die Auswahl wechselt wöchentlich. Entfernungen ab dem Treffpunkt; im Sommer gibt es am ersten Samstag des Monats stattdessen ein Picknick am Dietenbachsee.</p>
         <div class="cards">
           <article>
             <img class="card-image" src="../images/heitzmann.jpg" alt="Teilnehmende lassen den parkrun gemeinsam in einer Bäckerei ausklingen" loading="lazy" decoding="async">
@@ -313,9 +308,8 @@
 
     <section id="park-angebote">
       <div class="container">
-        <span class="tag">Freizeit im Grünen</span>
         <h2>Im Dietenbachpark</h2>
-        <p class="section-intro">Der Park bietet viele Möglichkeiten, sich vor oder nach dem parkrun auszutoben und zu entspannen. Die Karte zeigt die Standorte der Freizeitangebote und weitere wichtige Orte im Park.</p>
+        <p>Der Park bietet viele Möglichkeiten, sich vor oder nach dem parkrun auszutoben und zu entspannen. Die Karte zeigt die Standorte der Freizeitangebote und weitere wichtige Orte im Park.</p>
         <div class="map-layout">
           <div class="map" id="park-amenities-map" aria-label="Karte des Dietenbachparks und seiner Freizeitangebote">
             <div class="map-fallback">Die Karte des Dietenbachparks wird geladen.</div>

@@ -23,18 +23,6 @@ nav .nav-links { flex-wrap: wrap; }
   font-size: .9rem;
   font-weight: 700;
 }
-.intro { color: var(--pico-muted-color); font-size: 1.2rem; }
-.hero-note strong { display: block; margin-bottom: .5rem; }
-
-.tag {
-  display: block;
-  color: var(--pico-muted-color);
-  font-size: .8rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.section-intro { max-width: 48rem; color: var(--pico-muted-color); }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); column-gap: var(--pico-grid-column-gap); }
 .footer-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
@@ -54,7 +42,6 @@ article > .card-image, .card-image {
   object-fit: cover;
   border-radius: var(--pico-border-radius);
 }
-article > :last-child { margin-bottom: 0; }
 
 .contact-list { padding: 0; list-style: none; }
 .contact-list li { margin-bottom: .9rem; padding: 0; list-style: none; }
