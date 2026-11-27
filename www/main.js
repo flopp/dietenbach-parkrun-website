@@ -1,17 +1,3 @@
-const themeButton = document.querySelector(".theme-toggle");
-const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-const showThemeState = (isDark) => {
-  themeButton.setAttribute("aria-pressed", String(isDark));
-  themeButton.textContent = isDark ? "Helles Design" : "Dunkles Design";
-};
-showThemeState(prefersDark.matches);
-themeButton.addEventListener("click", () => {
-  const current = document.documentElement.dataset.theme || (prefersDark.matches ? "dark" : "light");
-  const isDark = current !== "dark";
-  document.documentElement.dataset.theme = isDark ? "dark" : "light";
-  showThemeState(isDark);
-});
-
 // COUNTER
 const visitorHistory = document.querySelector(".visitor-count-history");
 if (visitorHistory) {
